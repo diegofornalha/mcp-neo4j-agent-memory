@@ -2,6 +2,32 @@
 
 An MCP server that provides integration between Neo4j graph database and Claude Desktop, enabling graph database operations through natural language interactions.
 
+## Quick Start
+
+You can run this MCP server directly using npx:
+
+```bash
+npx @da-okazaki/mcp-neo4j
+```
+
+Or add it to your Claude Desktop configuration:
+
+```json
+{
+  "mcpServers": {
+    "neo4j": {
+      "command": "npx",
+      "args": ["@da-okazaki/mcp-neo4j"],
+      "env": {
+        "NEO4J_URI": "bolt://localhost:7687",
+        "NEO4J_USERNAME": "neo4j",
+        "NEO4J_PASSWORD": "your-password"
+      }
+    }
+  }
+}
+```
+
 ## Features
 
 This server provides tools for interacting with a Neo4j database:
@@ -25,9 +51,11 @@ This server provides tools for interacting with a Neo4j database:
 
 ## Installation
 
+### For Development
+
 1. Clone the repository:
 ```bash
-git clone https://github.com/yourusername/mcp-neo4j-server.git
+git clone https://github.com/da-okazaki/mcp-neo4j-server.git
 cd mcp-neo4j-server
 ```
 
@@ -131,6 +159,25 @@ RETURN c.name, collect(p.name) as products]
 Result:
 - Alice Wilson: [Premium Coffee, Tea Set, Cookies]
 - Bob Miller: [Premium Coffee, Water Bottle]
+```
+
+## Publishing
+
+To publish the package to npm:
+
+1. Create an npm account if you don't have one:
+```bash
+npm adduser
+```
+
+2. Login to npm:
+```bash
+npm login
+```
+
+3. Publish the package:
+```bash
+npm publish --access public
 ```
 
 ## Error Handling
