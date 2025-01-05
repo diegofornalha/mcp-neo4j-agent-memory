@@ -1,6 +1,6 @@
 {
   "name": "@alanse/mcp-neo4j-server",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Neo4j MCP server for integrating Neo4j graph database with Claude Desktop through natural language interactions",
   "type": "module",
   "bin": {
