@@ -17,7 +17,7 @@ Or add it to your Claude Desktop configuration:
   "mcpServers": {
     "neo4j": {
       "command": "npx",
-      "args": ["@alanse/mcp-neo4j"],
+      "args": ["@alanse/mcp-neo4j-server"],
       "env": {
         "NEO4J_URI": "bolt://localhost:7687",
         "NEO4J_USERNAME": "neo4j",
