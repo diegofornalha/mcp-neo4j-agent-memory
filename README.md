@@ -1,4 +1,5 @@
 # MCP Neo4j Server
+[![smithery badge](https://smithery.ai/badge/@alanse/mcp-neo4j-server)](https://smithery.ai/protocol/@alanse/mcp-neo4j-server)
 
 An MCP server that provides integration between Neo4j graph database and Claude Desktop, enabling graph database operations through natural language interactions.
 
@@ -50,6 +51,14 @@ This server provides tools for interacting with a Neo4j database:
   - Requires node IDs for source and target nodes
 
 ## Installation
+
+### Installing via Smithery
+
+To install MCP Neo4j Server for Claude Desktop automatically via [Smithery](https://smithery.ai/protocol/@alanse/mcp-neo4j-server):
+
+```bash
+npx @smithery/cli install @alanse/mcp-neo4j-server --client claude
+```
 
 ### For Development
 
