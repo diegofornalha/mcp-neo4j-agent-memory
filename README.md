@@ -7,7 +7,7 @@ An MCP server that provides integration between Neo4j graph database and Claude 
 You can run this MCP server directly using npx:
 
 ```bash
-npx @da-okazaki/mcp-neo4j
+npx @alanse/mcp-neo4j
 ```
 
 Or add it to your Claude Desktop configuration:
@@ -17,7 +17,7 @@ Or add it to your Claude Desktop configuration:
   "mcpServers": {
     "neo4j": {
       "command": "npx",
-      "args": ["@da-okazaki/mcp-neo4j"],
+      "args": ["@alanse/mcp-neo4j"],
       "env": {
         "NEO4J_URI": "bolt://localhost:7687",
         "NEO4J_USERNAME": "neo4j",
@@ -161,44 +161,6 @@ Result:
 - Bob Miller: [Premium Coffee, Water Bottle]
 ```
 
-## Publishing
-
-To publish the package to npm:
-
-1. Create an npm account if you don't have one:
-```bash
-npm adduser
-```
-
-2. Login to npm:
-```bash
-npm login
-```
-
-3. Publish the package:
-```bash
-npm publish --access public
-```
-
-## Error Handling
-
-The server provides detailed error messages for common scenarios:
-
-- Database connection issues
-- Invalid Cypher syntax
-- Node/relationship not found
-- Property type mismatches
-- Constraint violations
-
-## Development
-
-To contribute to this project:
-
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Submit a pull request
-
 ## Testing
 
 Run the test suite:
@@ -211,6 +173,3 @@ npm test
 
 MIT
 
-## Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
