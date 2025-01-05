@@ -1,72 +1,169 @@
 # MCP Neo4j Server
 
-Neo4jデータベースとClaude Desktopを連携させるためのMCPサーバーです。
+An MCP server that provides integration between Neo4j graph database and Claude Desktop, enabling graph database operations through natural language interactions.
 
-## 機能
+## Features
 
-以下のツールを提供します：
+This server provides tools for interacting with a Neo4j database:
 
-- `execute_query`: Neo4jデータベースに対してCypherクエリを実行
-- `create_node`: 新しいノードを作成
-- `create_relationship`: ノード間のリレーションシップを作成
+### Tools
 
-## セットアップ
+- `execute_query`: Execute Cypher queries on the Neo4j database
+  - Supports all types of Cypher queries (READ, CREATE, UPDATE, DELETE)
+  - Returns query results in a structured format
+  - Parameters can be passed to prevent injection attacks
 
-1. 必要な環境変数を設定：
-   - `NEO4J_URI`: Neo4jデータベースのURI（デフォルト: bolt://localhost:7687）
-   - `NEO4J_USERNAME`: Neo4jのユーザー名（デフォルト: neo4j）
-   - `NEO4J_PASSWORD`: Neo4jのパスワード（必須）
+- `create_node`: Create a new node in the graph database
+  - Specify node labels and properties
+  - Returns the created node with its internal ID
+  - Supports all Neo4j data types for properties
 
-2. プロジェクトをビルド：
+- `create_relationship`: Create a relationship between two existing nodes
+  - Define relationship type and direction
+  - Add properties to relationships
+  - Requires node IDs for source and target nodes
+
+## Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/yourusername/mcp-neo4j-server.git
+cd mcp-neo4j-server
+```
+
+2. Install dependencies:
 ```bash
 npm install
+```
+
+3. Build the project:
+```bash
 npm run build
 ```
 
-## 使用例
+## Configuration
 
-### クエリの実行
-```typescript
-use_mcp_tool({
-  server_name: "neo4j",
-  tool_name: "execute_query",
-  arguments: {
-    query: "MATCH (n) RETURN n LIMIT 10"
-  }
-});
+The server requires the following environment variables:
+
+- `NEO4J_URI`: Neo4j database URI (default: bolt://localhost:7687)
+- `NEO4J_USERNAME`: Neo4j username (default: neo4j)
+- `NEO4J_PASSWORD`: Neo4j password (required)
+
+## Usage Examples
+
+Here are examples of how you can interact with the Neo4j database using natural language:
+
+### Querying Data
+
+You can ask questions like:
+- "Show me all employees in the Sales department"
+- "Find the top 5 oldest customers"
+- "Who has purchased more than 3 products in the last month?"
+
+Example:
+```
+User: "Show me all employees in the Sales department"
+
+Claude: Let me query the database for Sales department employees.
+
+[Executes query internally: MATCH (e:Employee)-[:WORKS_IN]->(d:Department {name: 'Sales'}) RETURN e.name, e.position]
+
+Result:
+- John Smith (Sales Manager)
+- Sarah Johnson (Sales Representative)
+- Mike Brown (Account Executive)
 ```
 
-### ノードの作成
-```typescript
-use_mcp_tool({
-  server_name: "neo4j",
-  tool_name: "create_node",
-  arguments: {
-    label: "Person",
-    properties: {
-      name: "John Doe",
-      age: 30
-    }
-  }
-});
+### Creating Data
+
+You can give instructions like:
+- "Add a new person named John Doe who is 30 years old"
+- "Create a product called 'Premium Coffee' with price $24.99"
+- "Add a new department called 'Research & Development'"
+
+Example:
+```
+User: "Add a new person named John Doe who is 30 years old"
+
+Claude: I'll create a new Person node with the provided information.
+
+[Creates node internally with label 'Person' and properties {name: 'John Doe', age: 30}]
+
+Result: Created new person node with ID: 123
 ```
 
-### リレーションシップの作成
-```typescript
-use_mcp_tool({
-  server_name: "neo4j",
-  tool_name: "create_relationship",
-  arguments: {
-    fromNodeId: 1,
-    toNodeId: 2,
-    type: "KNOWS",
-    properties: {
-      since: "2023"
-    }
-  }
-});
+### Creating Relationships
+
+You can request relationships like:
+- "Make John Doe friends with Jane Smith"
+- "Set Product A as a component of Product B"
+- "Assign John Doe to the Sales department"
+
+Example:
+```
+User: "Make John Doe friends with Jane Smith"
+
+Claude: I'll create a friendship relationship between these two people.
+
+[Creates relationship internally: MATCH (a:Person {name: 'John Doe'}), (b:Person {name: 'Jane Smith'})
+CREATE (a)-[:FRIENDS_WITH {since: '2024-01-05'}]->(b)]
+
+Result: Created friendship relationship between John Doe and Jane Smith
 ```
 
-## ライセンス
+### Complex Operations
+
+You can perform more complex operations with natural language:
+- "Find all products purchased by customers who live in New York"
+- "Show me friends of friends of John Doe"
+- "Calculate the average age of employees in each department"
+
+Example:
+```
+User: "Find all products purchased by customers who live in New York"
+
+Claude: I'll query the database for this information.
+
+[Executes query internally:
+MATCH (c:Customer {city: 'New York'})-[:PURCHASED]->(p:Product)
+RETURN c.name, collect(p.name) as products]
+
+Result:
+- Alice Wilson: [Premium Coffee, Tea Set, Cookies]
+- Bob Miller: [Premium Coffee, Water Bottle]
+```
+
+## Error Handling
+
+The server provides detailed error messages for common scenarios:
+
+- Database connection issues
+- Invalid Cypher syntax
+- Node/relationship not found
+- Property type mismatches
+- Constraint violations
+
+## Development
+
+To contribute to this project:
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Submit a pull request
+
+## Testing
+
+Run the test suite:
+
+```bash
+npm test
+```
+
+## License
 
 MIT
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
