@@ -3,6 +3,8 @@
 
 An MCP server that provides integration between Neo4j graph database and Claude Desktop, enabling graph database operations through natural language interactions.
 
+<a href="https://glama.ai/mcp/servers/qjpsxn4zlh"><img width="380" height="200" src="https://glama.ai/mcp/servers/qjpsxn4zlh/badge" alt="Neo4j Server MCP server" /></a>
+
 ## Quick Start
 
 You can run this MCP server directly using npx:
