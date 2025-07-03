@@ -1,6 +1,6 @@
 {
   "name": "@alanse/mcp-neo4j-server",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Neo4j MCP server for integrating Neo4j graph database with Claude Desktop through natural language interactions",
   "type": "module",
   "bin": {
@@ -17,10 +17,12 @@
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "0.6.0",
-    "neo4j-driver": "^5.27.0"
+    "neo4j-driver": "^5.27.0",
+    "uuid": "^11.0.4"
   },
   "devDependencies": {
     "@types/node": "^20.11.24",
+    "ts-node": "^10.9.2",
     "typescript": "^5.3.3"
   },
   "keywords": [

@@ -14,6 +14,7 @@ const config = {
   uri: process.env.NEO4J_URI || 'bolt://localhost:7687',
   username: process.env.NEO4J_USERNAME || 'neo4j',
   password: neo4jPassword,
+  database: process.env.NEO4J_DATABASE || 'neo4j',
 };
 
 // サーバーの起動

@@ -6,13 +6,17 @@ export interface Neo4jQueryParams {
 
 export class Neo4jClient {
   private driver: Driver;
+  private database?: string;
 
-  constructor(uri: string, username: string, password: string) {
+  constructor(uri: string, username: string, password: string, database?: string) {
     this.driver = neo4j.driver(uri, neo4j.auth.basic(username, password));
+    this.database = database;
   }
 
   async executeQuery<T = any>(query: string, params: Neo4jQueryParams = {}): Promise<T[]> {
-    const session: Session = this.driver.session();
+    const session: Session = this.driver.session({
+      database: this.database
+    });
     try {
       const result: QueryResult = await session.run(query, params);
       return result.records.map((record: Neo4jRecord) => {

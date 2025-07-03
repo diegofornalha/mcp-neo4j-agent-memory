@@ -7,6 +7,7 @@ interface Neo4jServerConfig {
   uri: string;
   username: string;
   password: string;
+  database?: string;
 }
 
 interface ExecuteQueryArgs {
@@ -61,7 +62,7 @@ export class Neo4jServer {
       }
     );
 
-    this.neo4j = new Neo4jClient(config.uri, config.username, config.password);
+    this.neo4j = new Neo4jClient(config.uri, config.username, config.password, config.database);
     this.setupToolHandlers();
 
     // エラーハンドリング

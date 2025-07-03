@@ -24,7 +24,8 @@ Or add it to your Claude Desktop configuration:
       "env": {
         "NEO4J_URI": "bolt://localhost:7687",
         "NEO4J_USERNAME": "neo4j",
-        "NEO4J_PASSWORD": "your-password"
+        "NEO4J_PASSWORD": "your-password",
+        "NEO4J_DATABASE": "neo4j"
       }
     }
   }
@@ -34,6 +35,10 @@ Or add it to your Claude Desktop configuration:
 ## Features
 
 This server provides tools for interacting with a Neo4j database:
+
+### Neo4j Enterprise Support
+
+This server now supports connecting to specific databases in Neo4j Enterprise Edition. By default, it connects to the "neo4j" database, but you can specify a different database using the `NEO4J_DATABASE` environment variable.
 
 ### Tools
 
@@ -87,10 +92,28 @@ The server requires the following environment variables:
 - `NEO4J_URI`: Neo4j database URI (default: bolt://localhost:7687)
 - `NEO4J_USERNAME`: Neo4j username (default: neo4j)
 - `NEO4J_PASSWORD`: Neo4j password (required)
+- `NEO4J_DATABASE`: Neo4j database name (default: neo4j) - Use this to connect to a specific database in Neo4j Enterprise
 
 ## Usage Examples
 
 Here are examples of how you can interact with the Neo4j database using natural language:
+
+### Connecting to a Specific Database
+
+For Neo4j Enterprise users with multiple databases, you can specify which database to connect to:
+
+```json
+{
+  "env": {
+    "NEO4J_URI": "bolt://localhost:7687",
+    "NEO4J_USERNAME": "neo4j",
+    "NEO4J_PASSWORD": "your-password",
+    "NEO4J_DATABASE": "myCustomDatabase"
+  }
+}
+```
+
+This will connect to "myCustomDatabase" instead of the default "neo4j" database.
 
 ### Querying Data
 
