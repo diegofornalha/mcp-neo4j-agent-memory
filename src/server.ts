@@ -20,6 +20,25 @@ interface CreateNodeArgs {
   properties: Record<string, any>;
 }
 
+interface RememberArgs {
+  type: 'person' | 'fact' | 'preference' | 'event' | 'location' | 'topic';
+  content: string;
+  details?: string;
+  relates_to?: string;
+}
+
+interface RecallArgs {
+  query: string;
+  type?: string;
+  depth?: number;
+}
+
+interface ConnectMemoriesArgs {
+  from: string;
+  to: string;
+  relationship: string;
+}
+
 interface CreateRelationshipArgs {
   fromNodeId: number;
   toNodeId: number;
@@ -43,6 +62,44 @@ function isCreateRelationshipArgs(args: unknown): args is CreateRelationshipArgs
     typeof (args as CreateRelationshipArgs).toNodeId === 'number' &&
     typeof (args as CreateRelationshipArgs).type === 'string'
   );
+}
+
+function isRememberArgs(args: unknown): args is RememberArgs {
+  return (
+    typeof args === 'object' &&
+    args !== null &&
+    typeof (args as RememberArgs).type === 'string' &&
+    typeof (args as RememberArgs).content === 'string' &&
+    ['person', 'fact', 'preference', 'event', 'location', 'topic'].includes((args as RememberArgs).type)
+  );
+}
+
+function isRecallArgs(args: unknown): args is RecallArgs {
+  return typeof args === 'object' && args !== null && typeof (args as RecallArgs).query === 'string';
+}
+
+function isConnectMemoriesArgs(args: unknown): args is ConnectMemoriesArgs {
+  return (
+    typeof args === 'object' &&
+    args !== null &&
+    typeof (args as ConnectMemoriesArgs).from === 'string' &&
+    typeof (args as ConnectMemoriesArgs).to === 'string' &&
+    typeof (args as ConnectMemoriesArgs).relationship === 'string'
+  );
+}
+
+function parseDetails(details?: string): Record<string, any> {
+  const result: Record<string, any> = {};
+  if (!details) return result;
+  
+  const pairs = details.split(',');
+  for (const pair of pairs) {
+    const [key, value] = pair.split('=').map(s => s.trim());
+    if (key && value) {
+      result[key] = value;
+    }
+  }
+  return result;
 }
 
 export class Neo4jServer {
@@ -142,6 +199,77 @@ export class Neo4jServer {
             required: ['fromNodeId', 'toNodeId', 'type'],
           },
         },
+        {
+          name: 'remember',
+          description: 'Store a memory with automatic type detection and relationship creation. Example: remember(type="person", content="Ben", details="relationship=self")',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              type: {
+                type: 'string',
+                enum: ['person', 'fact', 'preference', 'event', 'location', 'topic'],
+                description: 'Type of memory to store',
+              },
+              content: {
+                type: 'string',
+                description: 'Main content to remember',
+              },
+              details: {
+                type: 'string',
+                description: 'Additional details as key=value pairs (e.g., "name=Ben,city=Cambridge")',
+              },
+              relates_to: {
+                type: 'string',
+                description: 'ID or name of related memory to connect to',
+              },
+            },
+            required: ['type', 'content'],
+          },
+        },
+        {
+          name: 'recall',
+          description: 'Search memories by type, content, or relationships',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              query: {
+                type: 'string',
+                description: 'What to search for',
+              },
+              type: {
+                type: 'string',
+                description: 'Optional: Filter by memory type',
+              },
+              depth: {
+                type: 'number',
+                description: 'How many relationship levels to include (default 1)',
+              },
+            },
+            required: ['query'],
+          },
+        },
+        {
+          name: 'connect_memories',
+          description: 'Create relationship between existing memories',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              from: {
+                type: 'string',
+                description: 'Source memory ID or unique identifier',
+              },
+              to: {
+                type: 'string',
+                description: 'Target memory ID or unique identifier',
+              },
+              relationship: {
+                type: 'string',
+                description: 'Type of relationship (e.g., KNOWS, LIVES_IN, PREFERS)',
+              },
+            },
+            required: ['from', 'to', 'relationship'],
+          },
+        },
       ],
     }));
 
@@ -186,6 +314,140 @@ export class Neo4jServer {
               throw new McpError(ErrorCode.InvalidParams, 'Invalid create_relationship arguments');
             }
             const result = await this.neo4j.createRelationship(args.fromNodeId, args.toNodeId, args.type, args.properties);
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(result, null, 2),
+                },
+              ],
+            };
+          }
+
+          case 'remember': {
+            if (!isRememberArgs(args)) {
+              throw new McpError(ErrorCode.InvalidParams, 'Invalid remember arguments');
+            }
+            
+            // Parse additional details
+            const properties = parseDetails(args.details);
+            properties.content = args.content;
+            properties.type = args.type;
+            properties.created_at = new Date().toISOString();
+            
+            // Create the memory node
+            const label = args.type.charAt(0).toUpperCase() + args.type.slice(1);
+            const result = await this.neo4j.createNode(label, properties);
+            
+            // If relates_to is specified, create a relationship
+            if (args.relates_to) {
+              // Find the related node
+              const relatedQuery = `
+                MATCH (n) 
+                WHERE n.content = $content OR id(n) = toInteger($content)
+                RETURN id(n) as id
+                LIMIT 1
+              `;
+              const relatedResult = await this.neo4j.executeQuery(relatedQuery, { content: args.relates_to });
+              
+              if (relatedResult.length > 0) {
+                const relatedId = relatedResult[0].id;
+                await this.neo4j.createRelationship(
+                  result.id,
+                  relatedId,
+                  'RELATES_TO',
+                  { created_at: new Date().toISOString() }
+                );
+              }
+            }
+            
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(result, null, 2),
+                },
+              ],
+            };
+          }
+
+          case 'recall': {
+            if (!isRecallArgs(args)) {
+              throw new McpError(ErrorCode.InvalidParams, 'Invalid recall arguments');
+            }
+            
+            const depth = args.depth || 1;
+            let query = `
+              MATCH (n)
+              WHERE n.content CONTAINS $query
+            `;
+            
+            if (args.type) {
+              query += ` AND labels(n)[0] = $type`;
+            }
+            
+            if (depth > 0) {
+              query += `
+                OPTIONAL MATCH path = (n)-[*1..${depth}]-(related)
+                RETURN n, collect(DISTINCT {
+                  node: related,
+                  relationship: relationships(path)[0],
+                  distance: length(path)
+                }) as connections
+              `;
+            } else {
+              query += ` RETURN n, [] as connections`;
+            }
+            
+            const params: Record<string, any> = { query: args.query };
+            if (args.type) {
+              params.type = args.type.charAt(0).toUpperCase() + args.type.slice(1);
+            }
+            
+            const result = await this.neo4j.executeQuery(query, params);
+            
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(result, null, 2),
+                },
+              ],
+            };
+          }
+
+          case 'connect_memories': {
+            if (!isConnectMemoriesArgs(args)) {
+              throw new McpError(ErrorCode.InvalidParams, 'Invalid connect_memories arguments');
+            }
+            
+            // Find the source node
+            const fromQuery = `
+              MATCH (n) 
+              WHERE n.content = $content OR id(n) = toInteger($content)
+              RETURN id(n) as id
+              LIMIT 1
+            `;
+            const fromResult = await this.neo4j.executeQuery(fromQuery, { content: args.from });
+            
+            if (fromResult.length === 0) {
+              throw new Error(`Source memory '${args.from}' not found`);
+            }
+            
+            // Find the target node
+            const toResult = await this.neo4j.executeQuery(fromQuery, { content: args.to });
+            
+            if (toResult.length === 0) {
+              throw new Error(`Target memory '${args.to}' not found`);
+            }
+            
+            const result = await this.neo4j.createRelationship(
+              fromResult[0].id,
+              toResult[0].id,
+              args.relationship,
+              { created_at: new Date().toISOString() }
+            );
+            
             return {
               content: [
                 {
