@@ -201,7 +201,21 @@ export class Neo4jServer {
         },
         {
           name: 'remember',
-          description: 'Store a memory with automatic type detection and relationship creation. Example: remember(type="person", content="Ben", details="relationship=self")',
+          description: `Store a memory in the knowledge graph. IMPORTANT: Always use 'recall' first to check if the entity already exists before creating new ones.
+          
+For people: Names are NOT unique - always gather context (where they work, live, relationships) to distinguish between different people with the same name.
+For locations: Clarify ambiguous places (e.g., Cambridge UK vs Cambridge MA).
+
+Usage: remember(type, content, details, relates_to)
+- type: "person", "location", "preference", "fact", "event", "topic" 
+- content: The main information to remember
+- details: Additional context as key=value pairs
+- relates_to: Optional - connect to existing memory
+
+Examples:
+- remember(type="person", content="Ben", details="relationship=self,location=Cambridge,work=OpenAI")
+- remember(type="location", content="Cambridge, UK", details="type=city,country=UK")
+- remember(type="preference", content="loves pizza", relates_to="Ben")`,
           inputSchema: {
             type: 'object',
             properties: {
@@ -228,7 +242,16 @@ export class Neo4jServer {
         },
         {
           name: 'recall',
-          description: 'Search memories by type, content, or relationships',
+          description: `Search and retrieve memories from the knowledge graph. Use this BEFORE creating new memories to avoid duplicates.
+
+Common queries:
+- "What's my name?" → recall(query="relationship=self", type="person")
+- "What do you know about me?" → recall(query="[name]", type="person", depth=3)
+- "Where do I live?" → recall(query="[name]", type="person", depth=2)
+- Check for existing entities → recall(query="Cambridge", type="location")
+- Find recent memories → recall(query="", type="person") and check created_at
+
+The depth parameter controls how many relationships to traverse (1=just the node, 2+=includes connections).`,
           inputSchema: {
             type: 'object',
             properties: {
@@ -250,7 +273,15 @@ export class Neo4jServer {
         },
         {
           name: 'connect_memories',
-          description: 'Create relationship between existing memories',
+          description: `Create relationships between existing memories to build a knowledge graph.
+
+Common relationships:
+- Person → Location: LIVES_IN, WORKS_IN, VISITED, FROM
+- Person → Person: KNOWS, FRIEND_OF, WORKS_WITH, RELATED_TO
+- Person → Organization: WORKS_AT, MEMBER_OF, FOUNDED
+- Person → Topic: INTERESTED_IN, EXPERT_IN
+
+Example: connect_memories(from="Ben", to="Cambridge, UK", relationship="LIVES_IN")`,
           inputSchema: {
             type: 'object',
             properties: {
