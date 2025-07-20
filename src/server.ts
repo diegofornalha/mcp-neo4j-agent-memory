@@ -515,16 +515,6 @@ Example: connect_memories(from="Ben", to="Cambridge, UK", relationship="LIVES_IN
 
   async run(): Promise<void> {
     const transport = new StdioServerTransport();
-    
-    // Ensure Neo4j connection is established before accepting MCP connections
-    try {
-      await this.neo4j.executeQuery('RETURN 1 as test', {});
-      console.error('Neo4j connection verified');
-    } catch (error) {
-      console.error('Failed to connect to Neo4j:', error);
-      throw error;
-    }
-    
     await this.server.connect(transport);
     console.error('Neo4j MCP server running on stdio');
   }
