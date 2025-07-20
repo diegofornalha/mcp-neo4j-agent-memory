@@ -244,6 +244,12 @@ Examples:
           name: 'recall',
           description: `Search and retrieve memories from the knowledge graph. Use this BEFORE creating new memories to avoid duplicates.
 
+ALWAYS USE THIS TOOL WHEN:
+- User asks about identity: "who am I", "what's my name", "do you know me"
+- Starting a conversation (check for relationship=self)
+- User mentions any person, place, or topic that might be known
+- Before using remember to check if memory already exists
+
 Common queries:
 - "What's my name?" → recall(query="relationship=self", type="person")
 - "What do you know about me?" → recall(query="[name]", type="person", depth=3)
@@ -509,6 +515,16 @@ Example: connect_memories(from="Ben", to="Cambridge, UK", relationship="LIVES_IN
 
   async run(): Promise<void> {
     const transport = new StdioServerTransport();
+    
+    // Ensure Neo4j connection is established before accepting MCP connections
+    try {
+      await this.neo4j.executeQuery('RETURN 1 as test', {});
+      console.error('Neo4j connection verified');
+    } catch (error) {
+      console.error('Failed to connect to Neo4j:', error);
+      throw error;
+    }
+    
     await this.server.connect(transport);
     console.error('Neo4j MCP server running on stdio');
   }
