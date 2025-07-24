@@ -9,7 +9,7 @@ const testRemember = () => {
   console.log('🧠 Testing remember function...');
   
   const mcp = spawn('node', ['../build/index.js'], {
-    env: { ...process.env, NEO4J_DATABASE: 'test' },
+    env: { ...process.env, NEO4J_DATABASE: 'mcp-test' },
     stdio: ['pipe', 'pipe', 'pipe']
   });
 
@@ -17,19 +17,22 @@ const testRemember = () => {
     {
       id: 1,
       type: 'person',
-      content: 'Alice',
-      details: 'Engineer at Tech Corp'
+      name: 'Alice',
+      context: 'Test user for MCP testing',
+      properties: { occupation: 'Engineer', company: 'Tech Corp' }
     },
     {
       id: 2,
-      type: 'location',
-      content: 'San Francisco',
-      details: 'City in California'
+      type: 'place',
+      name: 'San Francisco',
+      context: 'Test location',
+      properties: { state: 'California', country: 'USA' }
     },
     {
       id: 3,
-      type: 'preference',
-      content: 'loves coffee',
+      type: 'food',
+      name: 'coffee',
+      context: 'Alice loves coffee',
       relates_to: 'Alice'
     }
   ];
@@ -77,8 +80,9 @@ const testRemember = () => {
         name: 'remember',
         arguments: {
           type: test.type,
-          content: test.content,
-          details: test.details,
+          name: test.name,
+          context: test.context,
+          properties: test.properties,
           relates_to: test.relates_to
         }
       }

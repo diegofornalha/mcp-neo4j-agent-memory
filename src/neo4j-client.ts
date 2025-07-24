@@ -93,6 +93,32 @@ export class Neo4jClient {
     return result[0];
   }
 
+  async deleteNode(nodeId: number): Promise<any> {
+    const result = await this.executeQuery(
+      `MATCH (n) WHERE id(n) = $nodeId
+       DETACH DELETE n
+       RETURN count(n) as deletedCount`,
+      {
+        nodeId: neo4j.int(nodeId),
+      }
+    );
+    return result[0];
+  }
+
+  async deleteRelationship(fromNodeId: number, toNodeId: number, relationType: string): Promise<any> {
+    const result = await this.executeQuery(
+      `MATCH (a)-[r:${relationType}]->(b)
+       WHERE id(a) = $fromId AND id(b) = $toId
+       DELETE r
+       RETURN count(r) as deletedCount`,
+      {
+        fromId: neo4j.int(fromNodeId),
+        toId: neo4j.int(toNodeId),
+      }
+    );
+    return result[0];
+  }
+
   async close(): Promise<void> {
     await this.driver.close();
   }

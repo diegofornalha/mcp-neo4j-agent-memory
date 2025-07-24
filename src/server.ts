@@ -21,9 +21,10 @@ interface CreateNodeArgs {
 }
 
 interface RememberArgs {
-  type: 'person' | 'fact' | 'preference' | 'event' | 'location' | 'topic';
-  content: string;
-  details?: string;
+  type: 'person' | 'place' | 'organization' | 'object' | 'animal' | 'event' | 'topic' | 'media' | 'food' | 'activity';
+  name?: string;
+  context?: string | string[];
+  properties?: Record<string, any>;
   relates_to?: string;
 }
 
@@ -31,6 +32,8 @@ interface RecallArgs {
   query: string;
   type?: string;
   depth?: number;
+  order_by?: string;
+  limit?: number;
 }
 
 interface ConnectMemoriesArgs {
@@ -58,6 +61,16 @@ interface UpdateRelationshipArgs {
   properties: Record<string, any>;
 }
 
+interface DeleteNodeArgs {
+  nodeId: number;
+}
+
+interface DeleteRelationshipArgs {
+  fromNodeId: number;
+  toNodeId: number;
+  type: string;
+}
+
 function isExecuteQueryArgs(args: unknown): args is ExecuteQueryArgs {
   return typeof args === 'object' && args !== null && typeof (args as ExecuteQueryArgs).query === 'string';
 }
@@ -81,8 +94,7 @@ function isRememberArgs(args: unknown): args is RememberArgs {
     typeof args === 'object' &&
     args !== null &&
     typeof (args as RememberArgs).type === 'string' &&
-    typeof (args as RememberArgs).content === 'string' &&
-    ['person', 'fact', 'preference', 'event', 'location', 'topic'].includes((args as RememberArgs).type)
+    ['person', 'place', 'organization', 'object', 'animal', 'event', 'topic', 'media', 'food', 'activity'].includes((args as RememberArgs).type)
   );
 }
 
@@ -117,6 +129,24 @@ function isUpdateRelationshipArgs(args: unknown): args is UpdateRelationshipArgs
     typeof (args as UpdateRelationshipArgs).toNodeId === 'number' &&
     typeof (args as UpdateRelationshipArgs).type === 'string' &&
     typeof (args as UpdateRelationshipArgs).properties === 'object'
+  );
+}
+
+function isDeleteNodeArgs(args: unknown): args is DeleteNodeArgs {
+  return (
+    typeof args === 'object' &&
+    args !== null &&
+    typeof (args as DeleteNodeArgs).nodeId === 'number'
+  );
+}
+
+function isDeleteRelationshipArgs(args: unknown): args is DeleteRelationshipArgs {
+  return (
+    typeof args === 'object' &&
+    args !== null &&
+    typeof (args as DeleteRelationshipArgs).fromNodeId === 'number' &&
+    typeof (args as DeleteRelationshipArgs).toNodeId === 'number' &&
+    typeof (args as DeleteRelationshipArgs).type === 'string'
   );
 }
 
@@ -225,15 +255,18 @@ export class Neo4jServer {
           description: `Store NEW entities in long-term memory. Create separate nodes for each person, place, or thing.
 
 PARAMETERS (MUST use this exact structure):
-- type: string (required) - one of: person, fact, preference, event, location, topic
-- content: string (required) - the main entity name or description
-- details: string (optional) - additional notes (avoid using for entities)
+- type: string (required) - one of: person, place, organization, object, animal, event, topic, media, food, activity
+- name: string (optional but STRONGLY RECOMMENDED) - what to call this entity
+- context: string/array (optional) - when/how this was mentioned, with quotes
+- properties: object (optional) - additional attributes specific to the type
 - relates_to: string (optional) - ID or name of related memory
 
 CORRECT USAGE:
 remember({
   "type": "person",
-  "content": "John Doe"
+  "name": "John Doe",
+  "context": "User told me about their friend John",
+  "properties": {"age": 30, "occupation": "engineer"}
 })
 
 INCORRECT (this is for update_node, not remember):
@@ -242,7 +275,62 @@ remember({
   "properties": {"age": 30}
 })
 
-If you see nodeId or properties, use update_node instead!
+If you see nodeId, use update_node instead!
+
+CRITICAL - AFTER STORING MEMORIES:
+- The user just told you information they want you to remember
+- They're still in the middle of telling you things
+- Keep listening and engaging with what they're sharing
+- Ask follow-up questions about what they told you
+- Show interest in the details they shared
+- DO NOT say generic things like "How can I help you today?"
+- Example: If they told you about their car, ask about it or acknowledge it
+- Continue the conversation naturally - they're sharing with you!
+
+BUILDING CONNECTED KNOWLEDGE:
+- Isolated memory nodes have limited value - always try to create connections
+- After storing a memory, think about what it relates to and use connect_memories()
+- Connect new information to existing knowledge whenever possible
+- Examples of valuable connections:
+  * Person → Location (where they live/work)
+  * Person → Person (relationships, family, colleagues)
+  * Person → Interests/Topics (what they care about)
+  * Facts → Related entities (car → owner, pet → family)
+- The more connections, the richer and more useful the knowledge graph becomes
+- Connected memories help you understand context and relationships better
+
+CAUTION - VERIFY BEFORE CONNECTING:
+- Don't assume relationships - wait for explicit confirmation
+- If unsure about a connection, ask for clarification
+- Be ready to update connections when you learn new information
+- Common mistakes to avoid:
+  * Assuming someone's spouse/partner without confirmation
+  * Assuming family relationships from shared last names
+  * Assuming work relationships without explicit information
+  * Connecting wrong entities with similar names
+- If you learn something that contradicts existing connections, update them
+- It's better to have fewer accurate connections than many assumed ones
+
+EVOLVING PROPERTIES TO ENTITIES:
+When you learn more details about something stored as a property, it might need to become its own node:
+
+EXAMPLES of property → entity evolution:
+- "work: Google" → Create Organization node "Google" with WORKS_FOR relationship
+- "pet: Max" → Create Animal node "Max" with HAS_PET relationship
+- "hobby: photography" → Create Topic node "photography" with INTERESTED_IN relationship
+- "car: Tesla" → Create Object node "Tesla Model X" with OWNS relationship
+
+WHEN TO CONVERT:
+- The property gains its own attributes (e.g., pet has breed, age, personality)
+- You learn about relationships it has (e.g., the workplace has other employees)
+- It becomes important enough to track independently
+- Multiple people share the same entity (e.g., multiple people work at same company)
+
+HOW TO CONVERT:
+1. Create new node with remember() for the entity
+2. Update original node to remove the property
+3. Create appropriate relationship with connect_memories()
+4. Add any additional properties to the new entity node
 
 WHEN TO STORE MEMORIES (like a person would):
 - Someone introduces themselves: "My name is Sarah"
@@ -252,6 +340,13 @@ WHEN TO STORE MEMORIES (like a person would):
 - Someone corrects you about something personal
 - Important details that would help in future conversations
 - Use your judgment - don't store every casual remark
+
+HANDLING INCOMPLETE INFORMATION:
+- Sometimes you won't know the name: "I saw my neighbor's white poodle"
+  → remember({type: "animal", context: "neighbor's pet", properties: {color: "white", breed: "poodle"}})
+- Ask for clarification when appropriate: "What's your neighbor's name? And their dog's name?"
+- It's better to store partial information than nothing at all
+- You can always update the node later when you learn the name
 
 DON'T STORE:
 - Greetings, partial words, "yes/no" answers, casual responses
@@ -304,45 +399,60 @@ MEMORY TYPES:
 - topic: Areas of knowledge
 
 GOOD PATTERN:
-1. remember(type="person", content="Ben")
-2. remember(type="person", content="Sarah") 
+1. remember(type="person", name="Ben")
+2. remember(type="person", name="Sarah") 
 3. connect_memories(from="Ben", to="Sarah", relationship="MARRIED_TO")
 
 BAD PATTERN:
-- remember(type="person", content="Ben", details="wife=Sarah,age=42,job=engineer")
+- remember(type="person", name="Ben", properties={"wife": "Sarah"}) // 'wife' should be a separate node!
 
 Examples:
-- remember(type="person", content="Ben")
-- remember(type="location", content="Cambridge")  
-- remember(type="preference", content="loves cycling")
+- remember(type="person", name="Ben", context="User introduced themselves")
+- remember(type="place", name="Cambridge", properties={"country": "UK"})
+- remember(type="food", name="pizza", context="User's favorite food")
+- remember(type="animal", name="Max", properties={"breed": "poodle", "color": "white"})
 - Then use connect_memories() to link them`,
           inputSchema: {
             type: 'object',
             properties: {
               type: {
                 type: 'string',
-                enum: ['person', 'fact', 'preference', 'event', 'location', 'topic'],
+                enum: ['person', 'place', 'organization', 'object', 'animal', 'event', 'topic', 'media', 'food', 'activity'],
                 description: 'Type of memory to store',
               },
-              content: {
+              name: {
                 type: 'string',
-                description: 'Main content to remember',
+                description: 'What to call this entity (optional but strongly recommended)',
               },
-              details: {
-                type: 'string',
-                description: 'Optional notes field for additional context (avoid using for entities - create separate nodes instead)',
+              context: {
+                type: ['string', 'array'],
+                description: 'When/how this was mentioned, including quotes',
+              },
+              properties: {
+                type: 'object',
+                description: 'Additional attributes specific to the entity type',
+                additionalProperties: true,
               },
               relates_to: {
                 type: 'string',
                 description: 'ID or name of related memory to connect to',
               },
             },
-            required: ['type', 'content'],
+            required: ['type'],
           },
         },
         {
           name: 'recall',
           description: `Search and retrieve memories from the knowledge graph. Use this BEFORE creating new memories to avoid duplicates.
+
+MEMORY STRUCTURE MIGRATION:
+When you encounter memories using the old structure (with 'content' instead of 'name'), consider updating them:
+- Old format: Nodes with 'content' property containing the entity name
+- New format: Nodes with 'name' property and optional 'context' for source information
+- If appropriate to the conversation, ask the user to clarify ambiguous memories
+- Example: "I see you have a memory about 'Cambridge' - is this Cambridge, UK or Cambridge, MA?"
+- Use update_node to migrate memories to the new structure when clarifying with users
+- Add missing properties like country, state, or other disambiguating information
 
 ALWAYS USE THIS TOOL WHEN:
 - User asks about identity: "who am I", "what's my name", "do you know me"
@@ -404,7 +514,13 @@ MEMORY PERSPECTIVE:
 - Don't always announce when you're accessing memory - just know things naturally from past conversations
 - The memory system helps you be a better conversational partner by remembering context
 
-The depth parameter controls how many relationships to traverse (1=just the node, 2+=includes connections).`,
+The depth parameter controls how many relationships to traverse (1=just the node, 2+=includes connections).
+
+ORDERING AND LIMITS:
+- Results are ordered by created_at DESC (most recent first)
+- Limited to 50 results to prevent overwhelming responses
+- If you need older memories, be more specific in your query
+- Most recent memories are prioritized in truncated responses`,
           inputSchema: {
             type: 'object',
             properties: {
@@ -420,6 +536,14 @@ The depth parameter controls how many relationships to traverse (1=just the node
                 type: 'number',
                 description: 'How many relationship levels to include (default 1)',
               },
+              order_by: {
+                type: 'string',
+                description: 'Optional: How to order results. Options: "created_at DESC" (newest first), "created_at ASC" (oldest first), "updated_at DESC" (recently modified), or any property like "name ASC". Default: "created_at DESC"',
+              },
+              limit: {
+                type: 'number',
+                description: 'Optional: Maximum number of results (default 50, max 200)',
+              },
             },
             required: ['query'],
           },
@@ -429,6 +553,13 @@ The depth parameter controls how many relationships to traverse (1=just the node
           description: `Create relationships between existing memories to build a knowledge graph.
 
 IMPORTANT: Only use AFTER creating both nodes with remember(). The nodes must exist before connecting them.
+
+WHY CONNECTIONS MATTER:
+- Isolated memories are like scattered puzzle pieces - connections make the picture complete
+- Connected knowledge is exponentially more valuable than isolated facts
+- Relationships help you understand context and make better conversation
+- Always look for opportunities to connect new information to existing knowledge
+- The richer the connections, the better you can understand and help the user
 
 RELATIONSHIP PATTERNS:
 - Family: FATHER_OF, MOTHER_OF, CHILD_OF, SIBLING_OF, MARRIED_TO
@@ -497,7 +628,14 @@ Use this ONLY when:
 2. You want to UPDATE properties, not create new entities
 3. The entity already exists in the database
 
-For creating NEW memories, use remember instead!`,
+For creating NEW memories, use remember instead!
+
+CONSIDER ENTITY EVOLUTION:
+Before adding complex properties, consider if they should be separate nodes:
+- Simple property: age=25, color=blue ✓
+- Should be entity: work=Google, pet=Max, car="Tesla Model X" ✗
+- If a property could have its own properties or relationships, make it a node
+- This creates a richer, more queryable knowledge graph`,
           inputSchema: {
             type: 'object',
             properties: {
@@ -516,7 +654,22 @@ For creating NEW memories, use remember instead!`,
         },
         {
           name: 'update_relationship',
-          description: 'Update properties of an existing relationship',
+          description: `Update properties of an existing relationship when you learn new information.
+
+USE THIS WHEN:
+- You learn that a relationship has changed (e.g., job change, moved locations)
+- You need to correct a mistaken connection
+- You want to add more details to an existing relationship
+- The nature of a relationship has evolved
+
+EXAMPLES:
+- Person changed jobs: Update WORKS_FOR relationship
+- Someone moved: Update LIVES_IN relationship
+- Relationship status changed: Update from DATING to MARRIED_TO
+- Correcting mistakes: Fix wrong connections based on new information
+
+IMPORTANT: This updates relationship properties, not the relationship type itself.
+To change relationship types, you may need to delete and recreate the connection.`,
           inputSchema: {
             type: 'object',
             properties: {
@@ -539,6 +692,90 @@ For creating NEW memories, use remember instead!`,
               },
             },
             required: ['fromNodeId', 'toNodeId', 'type', 'properties'],
+          },
+        },
+        {
+          name: 'delete_node',
+          description: `Delete a memory node and all its relationships from the knowledge graph.
+
+USE WITH EXTREME CAUTION:
+- This permanently removes a memory from the database
+- All relationships connected to this node will also be deleted
+- This action cannot be undone
+- Consider if you really need to delete or just update instead
+
+AGENT GUIDANCE - BE VERY CAUTIOUS:
+- Never delete memories unless explicitly requested by the user
+- Always confirm with the user before deleting: "Are you sure you want me to forget about X?"
+- Suggest alternatives: "Would you like me to update this information instead?"
+- Explain the consequences: "This will also remove all connections to this memory"
+- Default to updating rather than deleting when possible
+- If user says something is wrong, ask if they want to correct it (update) or completely forget it (delete)
+
+WHEN TO USE:
+- User explicitly asks to forget something: "Forget that I told you X"
+- Correcting major errors that can't be fixed with updates
+- Removing test data or duplicate entries
+- Privacy concerns or user requests for data removal
+
+WHEN NOT TO USE:
+- Information has changed: Use update_node instead
+- Relationship has changed: Use delete_relationship + create new one
+- Minor corrections: Use update functions
+
+IMPORTANT:
+- Always use recall first to find the correct node ID
+- Double-check you have the right node before deleting
+- Consider the impact on connected memories`,
+          inputSchema: {
+            type: 'object',
+            properties: {
+              nodeId: {
+                type: 'number',
+                description: 'ID of the node to delete',
+              },
+            },
+            required: ['nodeId'],
+          },
+        },
+        {
+          name: 'delete_relationship',
+          description: `Delete a specific relationship between two nodes without deleting the nodes themselves.
+
+USE THIS WHEN:
+- A relationship is no longer valid (e.g., no longer works at a company)
+- Correcting mistaken connections
+- Before creating a new relationship of a different type
+- Cleaning up duplicate or incorrect relationships
+
+EXAMPLES:
+- Someone quit their job: Delete WORKS_FOR relationship
+- Moved away: Delete LIVES_IN relationship  
+- Relationship ended: Delete MARRIED_TO or DATING relationship
+- Correcting mistakes: Remove wrong connections
+
+IMPORTANT:
+- This only deletes the relationship, not the nodes
+- You need both node IDs and the exact relationship type
+- Use recall first to find the correct node IDs
+- Consider if you should create a new relationship after deleting`,
+          inputSchema: {
+            type: 'object',
+            properties: {
+              fromNodeId: {
+                type: 'number',
+                description: 'ID of the source node',
+              },
+              toNodeId: {
+                type: 'number',
+                description: 'ID of the target node',
+              },
+              type: {
+                type: 'string',
+                description: 'Exact relationship type to delete (e.g., WORKS_FOR, LIVES_IN)',
+              },
+            },
+            required: ['fromNodeId', 'toNodeId', 'type'],
           },
         },
       ],
@@ -600,22 +837,25 @@ For creating NEW memories, use remember instead!`,
               throw new McpError(ErrorCode.InvalidParams, 'Invalid remember arguments');
             }
             
-            // Create clean properties object - avoid storing arbitrary details as properties
+            // Create clean properties object
             const properties: Record<string, any> = {
-              content: args.content,
               type: args.type,
               created_at: new Date().toISOString()
             };
             
-            // Set name property for better graph visualization
-            if (args.type === 'person' || args.type === 'location' || args.type === 'topic') {
-              properties.name = args.content;
+            // Add name if provided
+            if (args.name) {
+              properties.name = args.name;
             }
             
-            // Only store specific, structured details if needed for core functionality
-            if (args.details) {
-              // Instead of parsing arbitrary key=value pairs, store as a notes field
-              properties.notes = args.details;
+            // Add context if provided
+            if (args.context) {
+              properties.context = args.context;
+            }
+            
+            // Add any additional properties
+            if (args.properties) {
+              Object.assign(properties, args.properties);
             }
             
             // Create the memory node
@@ -627,11 +867,11 @@ For creating NEW memories, use remember instead!`,
               // Find the related node
               const relatedQuery = `
                 MATCH (n) 
-                WHERE n.content = $content OR id(n) = toInteger($content)
+                WHERE n.name = $name OR id(n) = toInteger($name)
                 RETURN id(n) as id
                 LIMIT 1
               `;
-              const relatedResult = await this.neo4j.executeQuery(relatedQuery, { content: args.relates_to });
+              const relatedResult = await this.neo4j.executeQuery(relatedQuery, { name: args.relates_to });
               
               if (relatedResult.length > 0) {
                 const relatedId = relatedResult[0].id;
@@ -660,9 +900,24 @@ For creating NEW memories, use remember instead!`,
             }
             
             const depth = args.depth || 1;
+            const limit = Math.min(args.limit ?? 50, 200); // Cap at 200
+            
+            // Parse and validate order_by to prevent injection
+            let orderBy = 'n.created_at DESC'; // default
+            if (args.order_by) {
+              const orderMatch = args.order_by.match(/^(n\.)?([a-zA-Z_]+)\s+(ASC|DESC)$/i);
+              if (orderMatch) {
+                const property = orderMatch[2];
+                const direction = orderMatch[3].toUpperCase();
+                orderBy = `n.${property} ${direction}`;
+              } else {
+                throw new McpError(ErrorCode.InvalidParams, 'Invalid order_by format. Use "property ASC" or "property DESC"');
+              }
+            }
+            
             let query = `
               MATCH (n)
-              WHERE n.content CONTAINS $query
+              WHERE n.name CONTAINS $query OR n.context CONTAINS $query OR any(key IN keys(n) WHERE toString(n[key]) CONTAINS $query)
             `;
             
             if (args.type) {
@@ -677,9 +932,13 @@ For creating NEW memories, use remember instead!`,
                   relationship: relationships(path)[0],
                   distance: length(path)
                 }) as connections
+                ORDER BY ${orderBy}
+                LIMIT ${limit}
               `;
             } else {
-              query += ` RETURN n, [] as connections`;
+              query += ` RETURN n, [] as connections
+                ORDER BY ${orderBy}
+                LIMIT ${limit}`;
             }
             
             const params: Record<string, any> = { query: args.query };
@@ -707,18 +966,18 @@ For creating NEW memories, use remember instead!`,
             // Find the source node
             const fromQuery = `
               MATCH (n) 
-              WHERE n.content = $content OR id(n) = toInteger($content)
+              WHERE n.name = $name OR id(n) = toInteger($name)
               RETURN id(n) as id
               LIMIT 1
             `;
-            const fromResult = await this.neo4j.executeQuery(fromQuery, { content: args.from });
+            const fromResult = await this.neo4j.executeQuery(fromQuery, { name: args.from });
             
             if (fromResult.length === 0) {
               throw new Error(`Source memory '${args.from}' not found`);
             }
             
             // Find the target node
-            const toResult = await this.neo4j.executeQuery(fromQuery, { content: args.to });
+            const toResult = await this.neo4j.executeQuery(fromQuery, { name: args.to });
             
             if (toResult.length === 0) {
               throw new Error(`Target memory '${args.to}' not found`);
@@ -761,6 +1020,36 @@ For creating NEW memories, use remember instead!`,
               throw new McpError(ErrorCode.InvalidParams, 'Invalid update_relationship arguments');
             }
             const result = await this.neo4j.updateRelationship(args.fromNodeId, args.toNodeId, args.type, args.properties);
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(result, null, 2),
+                },
+              ],
+            };
+          }
+
+          case 'delete_node': {
+            if (!isDeleteNodeArgs(args)) {
+              throw new McpError(ErrorCode.InvalidParams, 'Invalid delete_node arguments');
+            }
+            const result = await this.neo4j.deleteNode(args.nodeId);
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(result, null, 2),
+                },
+              ],
+            };
+          }
+
+          case 'delete_relationship': {
+            if (!isDeleteRelationshipArgs(args)) {
+              throw new McpError(ErrorCode.InvalidParams, 'Invalid delete_relationship arguments');
+            }
+            const result = await this.neo4j.deleteRelationship(args.fromNodeId, args.toNodeId, args.type);
             return {
               content: [
                 {

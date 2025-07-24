@@ -9,7 +9,7 @@ const testRecall = () => {
   console.log('🔍 Testing recall function...');
   
   const mcp = spawn('node', ['../build/index.js'], {
-    env: { ...process.env, NEO4J_DATABASE: 'test' },
+    env: { ...process.env, NEO4J_DATABASE: 'mcp-test' },
     stdio: ['pipe', 'pipe', 'pipe']
   });
 
@@ -23,13 +23,13 @@ const testRecall = () => {
     {
       id: 2,
       query: 'San Francisco',
-      type: 'location',
+      type: 'place',
       depth: 1
     },
     {
       id: 3,
       query: 'coffee',
-      type: 'preference',
+      type: 'food',
       depth: 2
     },
     {

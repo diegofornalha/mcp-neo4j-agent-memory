@@ -9,7 +9,7 @@ const testConnectMemories = () => {
   console.log('🔗 Testing connect_memories function...');
   
   const mcp = spawn('node', ['../build/index.js'], {
-    env: { ...process.env, NEO4J_DATABASE: 'test' },
+    env: { ...process.env, NEO4J_DATABASE: 'mcp-test' },
     stdio: ['pipe', 'pipe', 'pipe']
   });
 
@@ -23,8 +23,8 @@ const testConnectMemories = () => {
     {
       id: 2,
       from: 'Alice',
-      to: 'loves coffee',
-      relationship: 'HAS_PREFERENCE'
+      to: 'coffee',
+      relationship: 'LIKES'
     }
   ];
 

@@ -16,7 +16,9 @@ const tests = [
   'test-recall.js', 
   'test-connect-memories.js',
   'test-update-node.js',
-  'test-update-relationship.js'
+  'test-update-relationship.js',
+  'test-delete-relationship.js',
+  'test-delete-node.js'
 ];
 
 let currentTest = 0;
