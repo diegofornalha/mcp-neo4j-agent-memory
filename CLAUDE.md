@@ -111,7 +111,7 @@ DETACH DELETE n
 
 ## Deployment Options
 
-1. **NPM Package**: Published as `@alanse/mcp-neo4j-server`
+1. **NPM Package**: Published as `@knowall-ai/mcp-neo4j-agent-memory`
 2. **Smithery**: Configured in `smithery.yaml` for cloud deployment
 3. **Docker**: Multi-stage Dockerfile for containerized deployment
 4. **Local Development**: Direct execution with `node build/index.js`

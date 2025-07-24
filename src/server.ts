@@ -13,7 +13,7 @@ export class Neo4jServer {
   constructor(config: Neo4jServerConfig) {
     this.server = new Server(
       {
-        name: 'mcp-neo4j-server',
+        name: 'mcp-neo4j-agent-memory',
         version: '1.0.0',
       },
       {
