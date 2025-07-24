@@ -12,7 +12,7 @@ export interface CreateMemoryArgs {
 
 export interface SearchMemoriesArgs {
   query: string;
-  type?: string;
+  label?: string;
   depth?: number;
   order_by?: string;
   limit?: number;
@@ -47,7 +47,7 @@ export interface DeleteConnectionArgs {
   type: string;
 }
 
-export interface ListMemoryTypesArgs {
+export interface ListMemoryLabelsArgs {
   // No arguments needed for this tool
 }
 
@@ -107,7 +107,7 @@ export function isDeleteConnectionArgs(args: unknown): args is DeleteConnectionA
   );
 }
 
-export function isListMemoryTypesArgs(args: unknown): args is ListMemoryTypesArgs {
+export function isListMemoryLabelsArgs(args: unknown): args is ListMemoryLabelsArgs {
   // This tool doesn't require any arguments, so just check it's an object
   return typeof args === 'object' && args !== null;
 }

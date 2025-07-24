@@ -13,6 +13,26 @@ export class Neo4jClient {
     this.database = database;
   }
 
+  private convertNestedIntegers(value: any): any {
+    if (value instanceof Integer) {
+      return value.toNumber();
+    }
+    
+    if (Array.isArray(value)) {
+      return value.map(item => this.convertNestedIntegers(item));
+    }
+    
+    if (value && typeof value === 'object' && value.constructor === Object) {
+      const converted: { [key: string]: any } = {};
+      for (const [key, val] of Object.entries(value)) {
+        converted[key] = this.convertNestedIntegers(val);
+      }
+      return converted;
+    }
+    
+    return value;
+  }
+
   async executeQuery<T = any>(query: string, params: Neo4jQueryParams = {}): Promise<T[]> {
     const session: Session = this.driver.session({
       database: this.database
@@ -25,13 +45,13 @@ export class Neo4jClient {
           const value = record.get(key);
           if (value instanceof Node || value instanceof Relationship) {
             obj[key as string] = {
-              ...value.properties,
+              ...this.convertNestedIntegers(value.properties),
               _id: value.identity.toNumber(),
               _labels: value instanceof Node ? value.labels : undefined,
               _type: value instanceof Relationship ? value.type : undefined,
             };
           } else {
-            obj[key as string] = value instanceof Integer ? value.toNumber() : value;
+            obj[key as string] = this.convertNestedIntegers(value);
           }
         }
         return obj as T;
@@ -42,11 +62,11 @@ export class Neo4jClient {
   }
 
   async getNodes(label: string): Promise<any[]> {
-    return this.executeQuery(`MATCH (n:${label}) RETURN n`);
+    return this.executeQuery(`MATCH (n:${label}) RETURN n as memory`);
   }
 
   async createNode(label: string, properties: Neo4jQueryParams): Promise<any> {
-    const result = await this.executeQuery(`CREATE (n:${label} $props) RETURN n`, { props: properties });
+    const result = await this.executeQuery(`CREATE (n:${label} $props) RETURN n as memory`, { props: properties });
     return result[0];
   }
 
@@ -55,7 +75,7 @@ export class Neo4jClient {
       `MATCH (a), (b)
        WHERE id(a) = $fromId AND id(b) = $toId
        CREATE (a)-[r:${relationType} $props]->(b)
-       RETURN r`,
+       RETURN r as relationship`,
       {
         fromId: neo4j.int(fromNodeId),
         toId: neo4j.int(toNodeId),
@@ -69,7 +89,7 @@ export class Neo4jClient {
     const result = await this.executeQuery(
       `MATCH (n) WHERE id(n) = $nodeId
        SET n += $props
-       RETURN n`,
+       RETURN n as memory`,
       {
         nodeId: neo4j.int(nodeId),
         props: properties,
@@ -83,7 +103,7 @@ export class Neo4jClient {
       `MATCH (a)-[r:${relationType}]->(b)
        WHERE id(a) = $fromId AND id(b) = $toId
        SET r += $props
-       RETURN r`,
+       RETURN r as relationship`,
       {
         fromId: neo4j.int(fromNodeId),
         toId: neo4j.int(toNodeId),

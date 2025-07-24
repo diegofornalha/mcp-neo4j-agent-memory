@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-// Test script for list_memory_types function
-// This script tests listing all unique memory types in the knowledge graph
+// Test script for list_memory_labels function
+// This script tests listing all unique memory labels in the knowledge graph
 
 import { spawn } from 'child_process';
 import dotenv from 'dotenv';
@@ -9,8 +9,8 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config({ path: '../.env' });
 
-const testListMemoryTypes = () => {
-  console.log('📋 Testing list_memory_types function...');
+const testListMemoryLabels = () => {
+  console.log('📋 Testing list_memory_labels function...');
   
   const mcp = spawn('node', ['../build/index.js'], {
     env: { 
@@ -55,17 +55,21 @@ const testListMemoryTypes = () => {
             console.log('✅ Created fourth test memory (project)');
           } else if (response.id === 5) {
             // List memory types result
-            console.log('✅ list_memory_types test passed');
+            console.log('✅ list_memory_labels test passed');
             const content = response.result?.content?.[0]?.text;
             if (content) {
               const result = JSON.parse(content);
-              console.log('\nMemory Types Found:');
-              if (result.length > 0 && result[0].types) {
-                result[0].types.forEach(type => {
-                  const count = type.count.low || type.count;
-                console.log(`- ${type.type}: ${count} memories`);
+              console.log('\nMemory Labels Found:');
+              if (result.length > 0 && result[0].labels) {
+                result[0].labels.forEach(item => {
+                  const count = item.count;
+                console.log(`- ${item.label}: ${count} memories`);
                 });
                 console.log(`\nTotal memories: ${result[0].totalMemories}`);
+                console.log('\n✨ Test completed successfully!');
+                clearTimeout(timeout);
+                mcp.kill();
+                process.exit(0);
               }
             }
             mcp.kill();
@@ -124,14 +128,16 @@ const testListMemoryTypes = () => {
 
   // Now list all memory types
   setTimeout(() => {
-    console.log('\nListing all memory types...');
-    sendMessage('list_memory_types', {});
+    console.log('\nListing all memory labels...');
+    sendMessage('list_memory_labels', {});
   }, 2000);
 
-  setTimeout(() => {
-    console.log('⏰ Test timeout');
+  // Set a timeout but mark test as failed if we reach it
+  const timeout = setTimeout(() => {
+    console.error('❌ Test failed: Timeout reached');
     mcp.kill();
+    process.exit(1);
   }, 10000);
 };
 
-testListMemoryTypes();
+testListMemoryLabels();

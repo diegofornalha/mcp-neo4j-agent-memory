@@ -7,14 +7,14 @@ export const tools: Tool[] = [
 
 Parameters:
 - query: Search text (can be empty string to get all memories)
-- type: Optional - filter by memory type (e.g., "person", "project", "place")
+- label: Optional - filter by memory label (e.g., "person", "project", "place")
 - depth: How many relationship levels to include (default: 1)
 - order_by: Sort field (default: "created_at DESC")
 - limit: Max results (default: 10, max: 200)
 
 Examples:
 - Search by name: search_memories({"query": "John"})
-- Search by type: search_memories({"query": "", "type": "person"})
+- Search by label: search_memories({"query": "", "label": "person"})
 - Get all with relationships: search_memories({"query": "", "depth": 2})`,
     inputSchema: {
       type: 'object',
@@ -23,9 +23,9 @@ Examples:
           type: 'string',
           description: 'Search text to find in any property',
         },
-        type: {
+        label: {
           type: 'string',
-          description: 'Filter by memory type',
+          description: 'Filter by memory label',
         },
         depth: {
           type: 'number',
@@ -48,10 +48,12 @@ Examples:
     description: `Create a new memory in the knowledge graph.
 
 Parameters:
-- label: The type/category of memory in lowercase (see common types below)
+- label: The label/category of memory in lowercase (see common labels below)
 - properties: Key-value pairs of information to store
 
-Common memory types (use lowercase):
+Note: Memories in Neo4j can have multiple labels, but this tool currently supports single labels only. Future versions may support multiple labels.
+
+Common memory labels (use lowercase):
 - person, place, organization, project, event, topic
 - object, animal, plant, food, activity, media
 - skill, document, meeting, task, habit
@@ -71,7 +73,7 @@ Examples:
       properties: {
         label: {
           type: 'string',
-          description: 'Memory type/category in lowercase (e.g., person, project, skill)',
+          description: 'Memory label in lowercase (e.g., person, project, skill). Note: Currently supports single labels only.',
         },
         properties: {
           type: 'object',
@@ -273,20 +275,30 @@ delete_connection({
     },
   },
   {
-    name: 'list_memory_types',
-    description: `List all unique memory types (labels) currently in use.
+    name: 'list_memory_labels',
+    description: `List all unique memory labels currently in use with their counts.
 
 This tool helps the LLM understand what types of memories already exist in the knowledge graph, promoting consistency and preventing duplicate types.
 
 Returns:
-- A list of all unique labels/types
-- Count of memories for each type
-- Total number of memories
+- A list of all unique labels/types with their counts as regular numbers
+- Each type entry includes the type name and count of memories
+- Total number of memories across all types
+
+Example JSON output:
+[{
+  "types": [
+    {"label": "person", "count": 16},
+    {"label": "place", "count": 7},
+    {"label": "project", "count": 5}
+  ],
+  "totalMemories": 40
+}]
 
 Use this before creating new memories to:
-- Check existing types to maintain consistency
-- Avoid creating variations (Person vs People vs Human)
-- Understand the knowledge graph structure`,
+- Check if a similar label already exists
+- Maintain naming consistency
+- Avoid creating duplicate labels with slight variations`,
     inputSchema: {
       type: 'object',
       properties: {},

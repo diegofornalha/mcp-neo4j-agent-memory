@@ -8,7 +8,7 @@ import {
   isUpdateConnectionArgs,
   isDeleteMemoryArgs,
   isDeleteConnectionArgs,
-  isListMemoryTypesArgs
+  isListMemoryLabelsArgs
 } from '../types.js';
 
 export async function handleToolCall(
@@ -41,14 +41,14 @@ export async function handleToolCall(
           WHERE n.name CONTAINS $query OR n.context CONTAINS $query OR any(key IN keys(n) WHERE toString(n[key]) CONTAINS $query)
         `;
         
-        if (args.type) {
-          query += ` AND labels(n)[0] = $type`;
+        if (args.label) {
+          query += ` AND labels(n)[0] = $label`;
         }
         
         if (depth > 0) {
           query += `
             OPTIONAL MATCH path = (n)-[*1..${depth}]-(related)
-            RETURN n, collect(DISTINCT {
+            RETURN n as memory, collect(DISTINCT {
               memory: related,
               relationship: relationships(path)[0],
               distance: length(path)
@@ -57,14 +57,14 @@ export async function handleToolCall(
             LIMIT ${limit}
           `;
         } else {
-          query += ` RETURN n, [] as connections
+          query += ` RETURN n as memory, [] as connections
             ORDER BY ${orderBy}
             LIMIT ${limit}`;
         }
         
         const params: Record<string, any> = { query: args.query };
-        if (args.type) {
-          params.type = args.type;
+        if (args.label) {
+          params.label = args.label;
         }
         
         const result = await neo4j.executeQuery(query, params);
@@ -184,9 +184,9 @@ export async function handleToolCall(
         };
       }
 
-      case 'list_memory_types': {
-        if (!isListMemoryTypesArgs(args)) {
-          throw new McpError(ErrorCode.InvalidParams, 'Invalid list_memory_types arguments');
+      case 'list_memory_labels': {
+        if (!isListMemoryLabelsArgs(args)) {
+          throw new McpError(ErrorCode.InvalidParams, 'Invalid list_memory_labels arguments');
         }
         
         const query = `
@@ -195,7 +195,7 @@ export async function handleToolCall(
           UNWIND nodeLabels as label
           WITH label, count(*) as count
           ORDER BY count DESC, label
-          RETURN collect({type: label, count: count}) as types, sum(count) as totalMemories
+          RETURN collect({label: label, count: count}) as labels, sum(count) as totalMemories
         `;
         
         const result = await neo4j.executeQuery(query, {});
