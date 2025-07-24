@@ -1,30 +1,50 @@
 #!/usr/bin/env node
 
-// Test script for connect_memories function
-// This script tests creating relationships between existing memories
+// Test script for create_memory function
+// This script tests creating different types of memory entities
 
 import { spawn } from 'child_process';
+import dotenv from 'dotenv';
 
-const testConnectMemories = () => {
-  console.log('🔗 Testing connect_memories function...');
+// Load environment variables
+dotenv.config({ path: '../.env' });
+
+const testCreateMemory = () => {
+  console.log('🧠 Testing create_memory function...');
   
   const mcp = spawn('node', ['../build/index.js'], {
-    env: { ...process.env, NEO4J_DATABASE: 'mcp-test' },
+    env: { ...process.env },
     stdio: ['pipe', 'pipe', 'pipe']
   });
 
   const tests = [
     {
       id: 1,
-      from: 'Alice',
-      to: 'San Francisco',
-      relationship: 'LIVES_IN'
+      label: 'person',
+      properties: {
+        name: 'Alice',
+        occupation: 'Engineer',
+        company: 'Tech Corp',
+        context: 'Test user for MCP testing'
+      }
     },
     {
       id: 2,
-      from: 'Alice',
-      to: 'coffee',
-      relationship: 'LIKES'
+      label: 'place',
+      properties: {
+        name: 'San Francisco',
+        state: 'California',
+        country: 'USA',
+        context: 'Test location'
+      }
+    },
+    {
+      id: 3,
+      label: 'food',
+      properties: {
+        name: 'coffee',
+        context: 'Alice loves coffee'
+      }
     }
   ];
 
@@ -40,12 +60,12 @@ const testConnectMemories = () => {
         try {
           const response = JSON.parse(line);
           if (response.id && response.id <= tests.length) {
-            console.log(`✅ connect_memories test ${response.id} passed`);
+            console.log(`✅ create_memory test ${response.id} passed`);
             console.log('Response:', JSON.stringify(response, null, 2));
             completedTests++;
             
             if (completedTests === tests.length) {
-              console.log('🎉 All connect_memories tests completed');
+              console.log('🎉 All create_memory tests completed');
               mcp.kill();
               return;
             }
@@ -68,11 +88,10 @@ const testConnectMemories = () => {
       id: test.id,
       method: 'tools/call',
       params: {
-        name: 'connect_memories',
+        name: 'create_memory',
         arguments: {
-          from: test.from,
-          to: test.to,
-          relationship: test.relationship
+          label: test.label,
+          properties: test.properties
         }
       }
     };
@@ -85,4 +104,4 @@ const testConnectMemories = () => {
   }, 10000);
 };
 
-testConnectMemories();
+testCreateMemory();

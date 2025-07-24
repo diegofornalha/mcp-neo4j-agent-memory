@@ -1,39 +1,46 @@
 #!/usr/bin/env node
 
-// Test script for remember function
-// This script tests creating different types of memory entities
+// Test script for search_memories function
+// This script tests querying stored memories
 
 import { spawn } from 'child_process';
+import dotenv from 'dotenv';
 
-const testRemember = () => {
-  console.log('🧠 Testing remember function...');
+// Load environment variables
+dotenv.config({ path: '../.env' });
+
+const testSearchMemories = () => {
+  console.log('🔍 Testing search_memories function...');
   
   const mcp = spawn('node', ['../build/index.js'], {
-    env: { ...process.env, NEO4J_DATABASE: 'mcp-test' },
+    env: { ...process.env },
     stdio: ['pipe', 'pipe', 'pipe']
   });
 
   const tests = [
     {
       id: 1,
+      query: 'Alice',
       type: 'person',
-      name: 'Alice',
-      context: 'Test user for MCP testing',
-      properties: { occupation: 'Engineer', company: 'Tech Corp' }
+      depth: 1
     },
     {
       id: 2,
+      query: 'San Francisco',
       type: 'place',
-      name: 'San Francisco',
-      context: 'Test location',
-      properties: { state: 'California', country: 'USA' }
+      depth: 1
     },
     {
       id: 3,
+      query: 'coffee',
       type: 'food',
-      name: 'coffee',
-      context: 'Alice loves coffee',
-      relates_to: 'Alice'
+      depth: 2
+    },
+    {
+      id: 4,
+      query: '',
+      limit: 10,
+      depth: 1 // Get all memories
     }
   ];
 
@@ -49,12 +56,12 @@ const testRemember = () => {
         try {
           const response = JSON.parse(line);
           if (response.id && response.id <= tests.length) {
-            console.log(`✅ remember test ${response.id} passed`);
+            console.log(`✅ search_memories test ${response.id} passed`);
             console.log('Response:', JSON.stringify(response, null, 2));
             completedTests++;
             
             if (completedTests === tests.length) {
-              console.log('🎉 All remember tests completed');
+              console.log('🎉 All search_memories tests completed');
               mcp.kill();
               return;
             }
@@ -77,13 +84,12 @@ const testRemember = () => {
       id: test.id,
       method: 'tools/call',
       params: {
-        name: 'remember',
+        name: 'search_memories',
         arguments: {
+          query: test.query,
           type: test.type,
-          name: test.name,
-          context: test.context,
-          properties: test.properties,
-          relates_to: test.relates_to
+          depth: test.depth,
+          limit: test.limit
         }
       }
     };
@@ -96,4 +102,4 @@ const testRemember = () => {
   }, 10000);
 };
 
-testRemember();
+testSearchMemories();

@@ -10,11 +10,22 @@ if (!neo4jPassword) {
   process.exit(1);
 }
 
+// All environment variables are required - no defaults
+if (!process.env.NEO4J_URI) {
+  console.error('Error: NEO4J_URI environment variable is required');
+  process.exit(1);
+}
+
+if (!process.env.NEO4J_USERNAME) {
+  console.error('Error: NEO4J_USERNAME environment variable is required');
+  process.exit(1);
+}
+
 const config = {
-  uri: process.env.NEO4J_URI || 'bolt://localhost:7687',
-  username: process.env.NEO4J_USERNAME || 'neo4j',
+  uri: process.env.NEO4J_URI,
+  username: process.env.NEO4J_USERNAME,
   password: neo4jPassword,
-  database: process.env.NEO4J_DATABASE || 'neo4j',
+  database: process.env.NEO4J_DATABASE, // Optional for Neo4j Community Edition
 };
 
 // サーバーの起動

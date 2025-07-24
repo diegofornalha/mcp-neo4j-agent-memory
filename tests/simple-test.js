@@ -62,46 +62,62 @@ const runTest = () => {
   });
 
   // Send test sequence
+  let aliceId = null;
+  let sfId = null;
+
   setTimeout(() => {
-    console.log('\n1. Testing execute_query...');
-    sendMessage('execute_query', {
-      query: 'CREATE (n:TestNode {name: "test", created: datetime()}) RETURN n',
-      params: {}
+    console.log('\n1. Testing create_memory (Person)...');
+    sendMessage('create_memory', {
+      label: 'person',
+      properties: {
+        name: 'Alice',
+        occupation: 'Software Engineer',
+        created_at: new Date().toISOString()
+      }
     });
   }, 1000);
 
   setTimeout(() => {
-    console.log('\n2. Testing remember...');
-    sendMessage('remember', {
-      type: 'person',
-      content: 'Alice',
-      details: 'Software Engineer'
+    console.log('\n2. Testing create_memory (Place)...');
+    sendMessage('create_memory', {
+      label: 'place',
+      properties: {
+        name: 'San Francisco',
+        type: 'City',
+        created_at: new Date().toISOString()
+      }
     });
   }, 2000);
 
   setTimeout(() => {
-    console.log('\n3. Testing remember location...');
-    sendMessage('remember', {
-      type: 'location',
-      content: 'San Francisco'
+    console.log('\n3. Testing search_memories...');
+    sendMessage('search_memories', {
+      query: 'Alice',
+      type: 'Person',
+      depth: 1
     });
   }, 3000);
 
   setTimeout(() => {
-    console.log('\n4. Testing recall...');
-    sendMessage('recall', {
-      query: 'Alice',
-      type: 'person',
-      depth: 1
+    console.log('\n4. Testing search_memories (all)...');
+    sendMessage('search_memories', {
+      query: '',
+      limit: 10
     });
   }, 4000);
 
   setTimeout(() => {
-    console.log('\n5. Testing connect_memories...');
-    sendMessage('connect_memories', {
-      from: 'Alice',
-      to: 'San Francisco',
-      relationship: 'LIVES_IN'
+    console.log('\n5. Testing create_connection...');
+    // Note: In a real test, we'd need to get the IDs from previous responses
+    // For this simple test, we'll use placeholder IDs
+    sendMessage('create_connection', {
+      fromMemoryId: 1,
+      toMemoryId: 2,
+      type: 'LIVES_IN',
+      properties: {
+        since: '2020',
+        created_at: new Date().toISOString()
+      }
     });
   }, 5000);
 

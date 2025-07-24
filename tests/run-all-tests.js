@@ -11,14 +11,14 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const tests = [
-  'test-execute-query.js',
-  'test-remember.js',
-  'test-recall.js', 
-  'test-connect-memories.js',
-  'test-update-node.js',
-  'test-update-relationship.js',
-  'test-delete-relationship.js',
-  'test-delete-node.js'
+  'test-create-memory.js',
+  'test-search-memories.js', 
+  'test-create-connection.js',
+  'test-update-memory.js',
+  'test-update-connection.js',
+  'test-delete-connection.js',
+  'test-delete-memory.js',
+  'test-list-memory-types.js'
 ];
 
 let currentTest = 0;

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 
-// Test script for delete_node function
-// This script tests deleting nodes from the graph
+// Test script for delete_memory function
+// This script tests deleting memories from the graph
 
 import { spawn } from 'child_process';
 import dotenv from 'dotenv';
@@ -9,8 +9,8 @@ import dotenv from 'dotenv';
 // Load environment variables
 dotenv.config({ path: '../.env' });
 
-const testDeleteNode = () => {
-  console.log('🗑️ Testing delete_node function...');
+const testDeleteMemory = () => {
+  console.log('🗑️ Testing delete_memory function...');
   
   const mcp = spawn('node', ['../build/index.js'], {
     env: { 
@@ -47,20 +47,20 @@ const testDeleteNode = () => {
           const response = JSON.parse(line);
           
           if (response.id === 1) {
-            // Created test node
+            // Created test memory
             const content = response.result?.content?.[0]?.text;
             if (content) {
               const result = JSON.parse(content);
               testNodeId = result.n._id;
-              console.log(`✅ Created test node with ID: ${testNodeId}`);
+              console.log(`✅ Created test memory with ID: ${testNodeId}`);
               
               // Now delete it
-              console.log('Deleting node...');
-              sendMessage('delete_node', { nodeId: testNodeId });
+              console.log('Deleting memory...');
+              sendMessage('delete_memory', { nodeId: testNodeId });
             }
           } else if (response.id === 2) {
-            // Deleted node
-            console.log('✅ delete_node test passed');
+            // Deleted memory
+            console.log('✅ delete_memory test passed');
             console.log('Response:', response.result?.content?.[0]?.text);
             mcp.kill();
           }
@@ -75,12 +75,14 @@ const testDeleteNode = () => {
     console.error('❌ Error:', data.toString());
   });
 
-  // First create a test node to delete
-  console.log('Creating test node to delete...');
-  sendMessage('remember', {
-    type: 'person',
-    content: 'TestPersonToDelete',
-    details: 'This is a test node that will be deleted'
+  // First create a test memory to delete
+  console.log('Creating test memory to delete...');
+  sendMessage('create_memory', {
+    label: 'person',
+    properties: {
+      name: 'TestPersonToDelete',
+      context: 'This is a test memory that will be deleted'
+    }
   });
 
   setTimeout(() => {
@@ -89,4 +91,4 @@ const testDeleteNode = () => {
   }, 10000);
 };
 
-testDeleteNode();
+testDeleteMemory();
