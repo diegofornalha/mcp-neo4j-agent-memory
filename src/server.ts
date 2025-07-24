@@ -222,7 +222,27 @@ export class Neo4jServer {
         },
         {
           name: 'remember',
-          description: `Store individual entities in long-term memory. Create separate nodes for each person, place, or thing.
+          description: `Store NEW entities in long-term memory. Create separate nodes for each person, place, or thing.
+
+PARAMETERS (MUST use this exact structure):
+- type: string (required) - one of: person, fact, preference, event, location, topic
+- content: string (required) - the main entity name or description
+- details: string (optional) - additional notes (avoid using for entities)
+- relates_to: string (optional) - ID or name of related memory
+
+CORRECT USAGE:
+remember({
+  "type": "person",
+  "content": "John Doe"
+})
+
+INCORRECT (this is for update_node, not remember):
+remember({
+  "nodeId": 123,
+  "properties": {"age": 30}
+})
+
+If you see nodeId or properties, use update_node instead!
 
 WHEN TO STORE MEMORIES (like a person would):
 - Someone introduces themselves: "My name is Sarah"
@@ -451,7 +471,33 @@ Examples:
         },
         {
           name: 'update_node',
-          description: 'Update properties of an existing node',
+          description: `Update properties of an EXISTING node (not for creating new memories).
+
+PARAMETERS (MUST use this exact structure):
+- nodeId: number (required) - the numeric ID of the existing node
+- properties: object (required) - key-value pairs to update
+
+CORRECT USAGE:
+update_node({
+  "nodeId": 123,
+  "properties": {
+    "age": 30,
+    "occupation": "Engineer"
+  }
+})
+
+INCORRECT (this is for remember, not update_node):
+update_node({
+  "type": "person",
+  "content": "John Doe"
+})
+
+Use this ONLY when:
+1. You have an existing node ID from recall
+2. You want to UPDATE properties, not create new entities
+3. The entity already exists in the database
+
+For creating NEW memories, use remember instead!`,
           inputSchema: {
             type: 'object',
             properties: {
