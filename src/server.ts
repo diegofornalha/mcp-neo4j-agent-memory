@@ -46,6 +46,18 @@ interface CreateRelationshipArgs {
   properties?: Record<string, any>;
 }
 
+interface UpdateNodeArgs {
+  nodeId: number;
+  properties: Record<string, any>;
+}
+
+interface UpdateRelationshipArgs {
+  fromNodeId: number;
+  toNodeId: number;
+  type: string;
+  properties: Record<string, any>;
+}
+
 function isExecuteQueryArgs(args: unknown): args is ExecuteQueryArgs {
   return typeof args === 'object' && args !== null && typeof (args as ExecuteQueryArgs).query === 'string';
 }
@@ -88,19 +100,28 @@ function isConnectMemoriesArgs(args: unknown): args is ConnectMemoriesArgs {
   );
 }
 
-function parseDetails(details?: string): Record<string, any> {
-  const result: Record<string, any> = {};
-  if (!details) return result;
-  
-  const pairs = details.split(',');
-  for (const pair of pairs) {
-    const [key, value] = pair.split('=').map(s => s.trim());
-    if (key && value) {
-      result[key] = value;
-    }
-  }
-  return result;
+function isUpdateNodeArgs(args: unknown): args is UpdateNodeArgs {
+  return (
+    typeof args === 'object' &&
+    args !== null &&
+    typeof (args as UpdateNodeArgs).nodeId === 'number' &&
+    typeof (args as UpdateNodeArgs).properties === 'object'
+  );
 }
+
+function isUpdateRelationshipArgs(args: unknown): args is UpdateRelationshipArgs {
+  return (
+    typeof args === 'object' &&
+    args !== null &&
+    typeof (args as UpdateRelationshipArgs).fromNodeId === 'number' &&
+    typeof (args as UpdateRelationshipArgs).toNodeId === 'number' &&
+    typeof (args as UpdateRelationshipArgs).type === 'string' &&
+    typeof (args as UpdateRelationshipArgs).properties === 'object'
+  );
+}
+
+// parseDetails function removed - was causing entity properties to be stored as node properties
+// instead of creating separate entities with relationships
 
 export class Neo4jServer {
   private server: Server;
@@ -201,21 +222,80 @@ export class Neo4jServer {
         },
         {
           name: 'remember',
-          description: `Store a memory in the knowledge graph. IMPORTANT: Always use 'recall' first to check if the entity already exists before creating new ones.
-          
-For people: Names are NOT unique - always gather context (where they work, live, relationships) to distinguish between different people with the same name.
-For locations: Clarify ambiguous places (e.g., Cambridge UK vs Cambridge MA).
+          description: `Store individual entities in long-term memory. Create separate nodes for each person, place, or thing.
 
-Usage: remember(type, content, details, relates_to)
-- type: "person", "location", "preference", "fact", "event", "topic" 
-- content: The main information to remember
-- details: Additional context as key=value pairs
-- relates_to: Optional - connect to existing memory
+WHEN TO STORE MEMORIES (like a person would):
+- Someone introduces themselves: "My name is Sarah"
+- Someone shares personal details: job, age, location, family, pets, hobbies
+- Someone mentions preferences: "I love jazz music", "I hate spinach"
+- Someone tells you about important life events or experiences
+- Someone corrects you about something personal
+- Important details that would help in future conversations
+- Use your judgment - don't store every casual remark
+
+DON'T STORE:
+- Greetings, partial words, "yes/no" answers, casual responses
+- Temporary conversation state or casual remarks
+- Information already mentioned in current conversation context
+
+ENTITY-BASED APPROACH:
+- Store ONE entity per remember() call - don't combine multiple entities
+- Use separate remember() calls for each person, place, organization mentioned
+- Use connect_memories() to create relationships between entities
+- Focus on clean, specific entities that can be connected later
+
+CRITICAL: ENTITY EXTRACTION FOR MEMORY
+When someone mentions people, places, or things, extract them as SEPARATE entities with relationships:
+
+BAD APPROACH (storing as properties):
+- remember with details="daughter=Nineveh,age=10,son=Isaac,age=17"
+
+GOOD APPROACH (separate entities with relationships):
+1. Create person: remember for "Ben" (main person)
+2. Create person: remember for "Nineveh" as separate person
+3. Create person: remember for "Isaac" as separate person  
+4. Create relationships: connect_memories between Ben and each child
+
+ENTITY TYPES TO EXTRACT:
+- Person: Names of people mentioned (family, friends, colleagues)
+- Location: Cities, venues, addresses, places
+- Organization: Companies, schools, groups
+- Fact: Ages, dates, important information
+- Preference: Likes, dislikes, interests
+- Event: Significant moments
+- Topic: Areas of knowledge
+
+WHEN TO UPDATE VS CREATE:
+- UPDATE: When adding new info about existing entities (age change, new job, moved house)
+- CREATE: When introducing completely new entities or correcting major errors
+- ALWAYS use recall first to check if entity exists before creating new ones
+
+UPDATE EXAMPLES:
+- "Ben moved to London" → update_node on Ben's location property
+- "Sarah got promoted" → update_node on Sarah's job_title
+- "Ben and Sarah got married" → connect_memories with MARRIED_TO relationship
+
+MEMORY TYPES:
+- person: Individual people
+- location: Specific places
+- fact: Objective information
+- preference: Likes/dislikes
+- event: Significant moments
+- topic: Areas of knowledge
+
+GOOD PATTERN:
+1. remember(type="person", content="Ben")
+2. remember(type="person", content="Sarah") 
+3. connect_memories(from="Ben", to="Sarah", relationship="MARRIED_TO")
+
+BAD PATTERN:
+- remember(type="person", content="Ben", details="wife=Sarah,age=42,job=engineer")
 
 Examples:
-- remember(type="person", content="Ben", details="relationship=self,location=Cambridge,work=OpenAI")
-- remember(type="location", content="Cambridge, UK", details="type=city,country=UK")
-- remember(type="preference", content="loves pizza", relates_to="Ben")`,
+- remember(type="person", content="Ben")
+- remember(type="location", content="Cambridge")  
+- remember(type="preference", content="loves cycling")
+- Then use connect_memories() to link them`,
           inputSchema: {
             type: 'object',
             properties: {
@@ -230,7 +310,7 @@ Examples:
               },
               details: {
                 type: 'string',
-                description: 'Additional details as key=value pairs (e.g., "name=Ben,city=Cambridge")',
+                description: 'Optional notes field for additional context (avoid using for entities - create separate nodes instead)',
               },
               relates_to: {
                 type: 'string',
@@ -246,7 +326,7 @@ Examples:
 
 ALWAYS USE THIS TOOL WHEN:
 - User asks about identity: "who am I", "what's my name", "do you know me"
-- Starting a conversation (check for relationship=self)
+- Starting a conversation (check for relationship=self to find who the user is)
 - User mentions any person, place, or topic that might be known
 - Before using remember to check if memory already exists
 
@@ -256,6 +336,53 @@ Common queries:
 - "Where do I live?" → recall(query="[name]", type="person", depth=2)
 - Check for existing entities → recall(query="Cambridge", type="location")
 - Find recent memories → recall(query="", type="person") and check created_at
+
+HANDLING EMPTY RESULTS:
+- If recall returns [] (empty array), this means NO MEMORIES EXIST YET for this query
+- This is NORMAL for new conversations or new topics
+- Do NOT interpret empty results as "new conversation" - just means no stored memories
+- Continue normally with the conversation using information from current context
+- Only store memories when users share meaningful personal information
+
+HANDLING AMBIGUOUS SEARCHES:
+- Multiple Johns? → recall(query="John", type="person") then check details to identify which one
+- Multiple Cambridges? → recall(query="Cambridge", type="location") then look for country/region
+- If multiple results, ask user to clarify: "I know 3 Johns. Do you mean John from Google, John your brother, or John from tennis club?"
+
+WHEN TO RECALL MEMORIES (like a person would):
+- They ask what you remember about someone/something
+- Something reminds you of previous conversations
+- When it would naturally help the conversation
+
+PROACTIVE MEMORY RECALL:
+When people, places, or familiar topics are mentioned, you MAY check if you have memories about them:
+- Use recall sparingly - only when it would genuinely help the conversation
+- Focus on responding to what they're saying NOW rather than always checking memory
+- If you do recall something relevant, use it naturally without announcing "I recall..."
+- Empty results don't mean anything is wrong - just means you haven't learned about that yet
+
+UNDERSTANDING WHEN TO USE RECALL:
+
+**CHECK CONVERSATION FIRST**: Before using recall, always check your current conversation!
+- If user told you their name 3 messages ago, you already know it - don't recall
+- If user mentioned they live in Cambridge earlier in THIS chat, you know it - don't recall
+- Only use recall when information is NOT in the current conversation
+
+**USE RECALL FOR**:
+- Information from PREVIOUS conversations (past sessions)
+- Starting a NEW conversation ("who am I?" at the beginning)
+- Verifying if something exists in long-term memory before storing it
+- Finding connections and relationships stored from past interactions
+
+REMEMBER: Your conversation history is your short-term memory. Neo4j is your long-term memory.
+Don't use a database query for something you were just told!
+
+MEMORY PERSPECTIVE:
+- Treat stored memories as YOUR personal knowledge about people and situations
+- Say "I remember you told me..." or "From what I know about you..." rather than "your memories show..."
+- Use your memory naturally like a person would - recall relevant details when they matter to the conversation
+- Don't always announce when you're accessing memory - just know things naturally from past conversations
+- The memory system helps you be a better conversational partner by remembering context
 
 The depth parameter controls how many relationships to traverse (1=just the node, 2+=includes connections).`,
           inputSchema: {
@@ -281,13 +408,28 @@ The depth parameter controls how many relationships to traverse (1=just the node
           name: 'connect_memories',
           description: `Create relationships between existing memories to build a knowledge graph.
 
+IMPORTANT: Only use AFTER creating both nodes with remember(). The nodes must exist before connecting them.
+
+RELATIONSHIP PATTERNS:
+- Family: FATHER_OF, MOTHER_OF, CHILD_OF, SIBLING_OF, MARRIED_TO
+- Work: WORKS_FOR, COLLEAGUE_OF, MANAGER_OF, REPORTS_TO
+- Location: LIVES_IN, WORKS_IN, BORN_IN, VISITED
+- Social: KNOWS, FRIEND_OF, PARTNER_OF
+- Interest: INTERESTED_IN, EXPERT_IN, STUDIES
+
 Common relationships:
 - Person → Location: LIVES_IN, WORKS_IN, VISITED, FROM
 - Person → Person: KNOWS, FRIEND_OF, WORKS_WITH, RELATED_TO
 - Person → Organization: WORKS_AT, MEMBER_OF, FOUNDED
 - Person → Topic: INTERESTED_IN, EXPERT_IN
+- Person → Preference: HAS_PREFERENCE
 
-Example: connect_memories(from="Ben", to="Cambridge, UK", relationship="LIVES_IN")`,
+Examples:
+- connect_memories(from="Ben", to="Cambridge, UK", relationship="LIVES_IN")
+- connect_memories(from="Ben", to="pizza", relationship="LOVES")
+- connect_memories(from="Ben", to="Sarah", relationship="MARRIED_TO")
+- connect_memories(from="Ben", to="Nineveh", relationship="FATHER_OF")
+- connect_memories(from="Ben", to="OpenAI", relationship="WORKS_FOR")`,
           inputSchema: {
             type: 'object',
             properties: {
@@ -305,6 +447,52 @@ Example: connect_memories(from="Ben", to="Cambridge, UK", relationship="LIVES_IN
               },
             },
             required: ['from', 'to', 'relationship'],
+          },
+        },
+        {
+          name: 'update_node',
+          description: 'Update properties of an existing node',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              nodeId: {
+                type: 'number',
+                description: 'ID of the node to update',
+              },
+              properties: {
+                type: 'object',
+                description: 'Properties to update/add',
+                additionalProperties: true,
+              },
+            },
+            required: ['nodeId', 'properties'],
+          },
+        },
+        {
+          name: 'update_relationship',
+          description: 'Update properties of an existing relationship',
+          inputSchema: {
+            type: 'object',
+            properties: {
+              fromNodeId: {
+                type: 'number',
+                description: 'ID of the source node',
+              },
+              toNodeId: {
+                type: 'number',
+                description: 'ID of the target node',
+              },
+              type: {
+                type: 'string',
+                description: 'Relationship type',
+              },
+              properties: {
+                type: 'object',
+                description: 'Properties to update/add',
+                additionalProperties: true,
+              },
+            },
+            required: ['fromNodeId', 'toNodeId', 'type', 'properties'],
           },
         },
       ],
@@ -366,11 +554,23 @@ Example: connect_memories(from="Ben", to="Cambridge, UK", relationship="LIVES_IN
               throw new McpError(ErrorCode.InvalidParams, 'Invalid remember arguments');
             }
             
-            // Parse additional details
-            const properties = parseDetails(args.details);
-            properties.content = args.content;
-            properties.type = args.type;
-            properties.created_at = new Date().toISOString();
+            // Create clean properties object - avoid storing arbitrary details as properties
+            const properties: Record<string, any> = {
+              content: args.content,
+              type: args.type,
+              created_at: new Date().toISOString()
+            };
+            
+            // Set name property for better graph visualization
+            if (args.type === 'person' || args.type === 'location' || args.type === 'topic') {
+              properties.name = args.content;
+            }
+            
+            // Only store specific, structured details if needed for core functionality
+            if (args.details) {
+              // Instead of parsing arbitrary key=value pairs, store as a notes field
+              properties.notes = args.details;
+            }
             
             // Create the memory node
             const label = args.type.charAt(0).toUpperCase() + args.type.slice(1);
@@ -485,6 +685,36 @@ Example: connect_memories(from="Ben", to="Cambridge, UK", relationship="LIVES_IN
               { created_at: new Date().toISOString() }
             );
             
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(result, null, 2),
+                },
+              ],
+            };
+          }
+
+          case 'update_node': {
+            if (!isUpdateNodeArgs(args)) {
+              throw new McpError(ErrorCode.InvalidParams, 'Invalid update_node arguments');
+            }
+            const result = await this.neo4j.updateNode(args.nodeId, args.properties);
+            return {
+              content: [
+                {
+                  type: 'text',
+                  text: JSON.stringify(result, null, 2),
+                },
+              ],
+            };
+          }
+
+          case 'update_relationship': {
+            if (!isUpdateRelationshipArgs(args)) {
+              throw new McpError(ErrorCode.InvalidParams, 'Invalid update_relationship arguments');
+            }
+            const result = await this.neo4j.updateRelationship(args.fromNodeId, args.toNodeId, args.type, args.properties);
             return {
               content: [
                 {

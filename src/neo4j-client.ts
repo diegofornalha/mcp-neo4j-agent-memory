@@ -65,6 +65,34 @@ export class Neo4jClient {
     return result[0];
   }
 
+  async updateNode(nodeId: number, properties: Neo4jQueryParams): Promise<any> {
+    const result = await this.executeQuery(
+      `MATCH (n) WHERE id(n) = $nodeId
+       SET n += $props
+       RETURN n`,
+      {
+        nodeId: neo4j.int(nodeId),
+        props: properties,
+      }
+    );
+    return result[0];
+  }
+
+  async updateRelationship(fromNodeId: number, toNodeId: number, relationType: string, properties: Neo4jQueryParams): Promise<any> {
+    const result = await this.executeQuery(
+      `MATCH (a)-[r:${relationType}]->(b)
+       WHERE id(a) = $fromId AND id(b) = $toId
+       SET r += $props
+       RETURN r`,
+      {
+        fromId: neo4j.int(fromNodeId),
+        toId: neo4j.int(toNodeId),
+        props: properties,
+      }
+    );
+    return result[0];
+  }
+
   async close(): Promise<void> {
     await this.driver.close();
   }
