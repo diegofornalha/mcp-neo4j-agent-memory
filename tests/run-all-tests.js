@@ -12,13 +12,15 @@ const __dirname = dirname(__filename);
 
 const tests = [
   'test-create-memory.js',
-  'test-search-memories.js', 
+  'test-search-memories.js',
+  'test-search-arrays.js',
   'test-create-connection.js',
   'test-update-memory.js',
   'test-update-connection.js',
   'test-delete-connection.js',
   'test-delete-memory.js',
-  'test-list-memory-labels.js'
+  'test-list-memory-labels.js',
+  'test-get-guidance.js'
 ];
 
 let currentTest = 0;
@@ -33,7 +35,8 @@ const runNextTest = () => {
   console.log(`\n🚀 Running ${testFile}...`);
   
   const testProcess = spawn('node', [join(__dirname, testFile)], {
-    stdio: 'inherit'
+    stdio: 'inherit',
+    cwd: __dirname // Run tests from the tests directory
   });
 
   testProcess.on('close', (code) => {
