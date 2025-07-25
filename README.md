@@ -2,8 +2,6 @@
 
 ![Neo4j Agent Memory Banner](./images/neo4j-agent-memory-05.png)
 
-[![smithery badge](https://smithery.ai/badge/@knowall-ai/mcp-neo4j-agent-memory)](https://smithery.ai/server/@knowall-ai/mcp-neo4j-agent-memory)
-
 A specialized MCP server that bridges Neo4j graph database with AI voice assistants, providing memory-focused tools for storing, recalling, and connecting information in a knowledge graph.
 
 ## Quick Start
