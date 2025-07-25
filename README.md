@@ -6,8 +6,6 @@
 
 A specialized MCP server that bridges Neo4j graph database with AI voice assistants, providing memory-focused tools for storing, recalling, and connecting information in a knowledge graph.
 
-<a href="https://glama.ai/mcp/servers/qjpsxn4zlh"><img width="380" height="200" src="https://glama.ai/mcp/servers/qjpsxn4zlh/badge" alt="Neo4j Agent Memory MCP server" /></a>
-
 ## Quick Start
 
 You can run this MCP server directly using npx:
