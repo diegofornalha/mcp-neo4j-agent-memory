@@ -112,6 +112,8 @@ This server now supports connecting to specific databases in Neo4j Enterprise Ed
 
 ### Installing via Smithery
 
+[![smithery badge](https://smithery.ai/badge/@knowall-ai/mcp-neo4j-agent-memory)](https://smithery.ai/server/@knowall-ai/mcp-neo4j-agent-memory)
+
 To install Neo4j Agent Memory MCP Server for Claude Desktop automatically via [Smithery](https://smithery.ai/server/@knowall-ai/mcp-neo4j-agent-memory):
 
 ```bash
