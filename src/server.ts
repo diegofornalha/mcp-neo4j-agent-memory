@@ -8,9 +8,9 @@ import { handleToolCall } from './handlers/index.js';
 
 export class Neo4jServer {
   private server: Server;
-  private neo4j: Neo4jClient;
+  private neo4j: Neo4jClient | null;
 
-  constructor(config: Neo4jServerConfig) {
+  constructor(config?: Neo4jServerConfig) {
     this.server = new Server(
       {
         name: 'mcp-neo4j-agent-memory',
@@ -23,7 +23,7 @@ export class Neo4jServer {
       }
     );
 
-    this.neo4j = new Neo4jClient(config.uri, config.username, config.password, config.database);
+    this.neo4j = config ? new Neo4jClient(config.uri, config.username, config.password, config.database) : null;
     this.setupToolHandlers();
 
     // Error handling
@@ -42,6 +42,17 @@ export class Neo4jServer {
 
     // Tool execution handler
     this.server.setRequestHandler(CallToolRequestSchema, async (request) => {
+      if (!this.neo4j) {
+        return {
+          content: [
+            {
+              type: 'text',
+              text: 'Neo4j connection not configured. Please set NEO4J_URI, NEO4J_USERNAME, and NEO4J_PASSWORD environment variables.',
+            },
+          ],
+          isError: true,
+        };
+      }
       const { name, arguments: args } = request.params;
       return handleToolCall(name, args, this.neo4j);
     });
@@ -54,7 +65,9 @@ export class Neo4jServer {
   }
 
   async close(): Promise<void> {
-    await this.neo4j.close();
+    if (this.neo4j) {
+      await this.neo4j.close();
+    }
     await this.server.close();
   }
 }
