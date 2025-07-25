@@ -3,6 +3,7 @@
   "version": "0.2.1",
   "description": "Neo4j MCP server for AI voice assistants with memory-focused tools and relationship management",
   "type": "module",
+  "module": "./src/index.ts",
   "bin": {
     "mcp-neo4j-agent-memory": "build/index.js"
   },
