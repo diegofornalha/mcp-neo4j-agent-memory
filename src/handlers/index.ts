@@ -27,29 +27,104 @@ export async function handleToolCall(
         const depth = args.depth ?? 1;
         const limit = Math.min(args.limit ?? 10, 200);
         
-        let orderBy = 'n.created_at DESC';
+        let orderBy = 'memory.created_at DESC';
         if (args.order_by) {
-          const orderMatch = args.order_by.match(/^(n\.)?([a-zA-Z_]+)\s+(ASC|DESC)$/i);
+          const orderMatch = args.order_by.match(/^(memory\.|n\.)?([a-zA-Z_]+)\s+(ASC|DESC)$/i);
           if (orderMatch) {
             const property = orderMatch[2];
             const direction = orderMatch[3].toUpperCase();
-            orderBy = `n.${property} ${direction}`;
+            orderBy = `memory.${property} ${direction}`;
           }
         }
         
-        let query = `
-          MATCH (n)
-          WHERE n.name CONTAINS $query OR n.context CONTAINS $query OR any(key IN keys(n) WHERE toString(n[key]) CONTAINS $query)
-        `;
-        
+        const params: Record<string, any> = { query: args.query };
         if (args.label) {
-          query += ` AND labels(n)[0] = $label`;
+          params.label = args.label;
         }
         
+        // Try a different approach: execute simple queries and handle complexity in JavaScript
+        const allMemoryIds = new Set<number>();
+        
+        try {
+          // First, get all memories that match the label filter (if any)
+          let baseQuery = `MATCH (memory)`;
+          if (args.label) {
+            baseQuery += ` WHERE labels(memory)[0] = $label`;
+          }
+          baseQuery += ` RETURN id(memory) as id, properties(memory) as props`;
+          
+          const allMemories = await neo4j.executeQuery(baseQuery, { label: args.label });
+          
+          // Filter in JavaScript
+          for (const record of allMemories) {
+            const props = record.props;
+            let found = false;
+            
+            // Search through all properties
+            for (const [key, value] of Object.entries(props)) {
+              if (value === null || value === undefined) continue;
+              
+              if (Array.isArray(value)) {
+                // Handle array properties
+                for (const item of value) {
+                  if (item && item.toString().toLowerCase().includes(args.query.toLowerCase())) {
+                    found = true;
+                    break;
+                  }
+                }
+              } else {
+                // Handle non-array properties
+                if (value.toString().toLowerCase().includes(args.query.toLowerCase())) {
+                  found = true;
+                }
+              }
+              
+              if (found) {
+                allMemoryIds.add(record.id);
+                break;
+              }
+            }
+          }
+        } catch (error) {
+          console.error('Error in search:', error);
+          // Fallback to a simpler query if the above fails
+          const fallbackQuery = `
+            MATCH (memory)
+            WHERE memory.name CONTAINS $query
+               OR memory.context CONTAINS $query
+               OR memory.description CONTAINS $query
+            ${args.label ? 'AND labels(memory)[0] = $label' : ''}
+            RETURN collect(DISTINCT id(memory)) as memoryIds
+          `;
+          
+          const fallbackResults = await neo4j.executeQuery(fallbackQuery, params);
+          if (fallbackResults.length > 0 && fallbackResults[0].memoryIds) {
+            fallbackResults[0].memoryIds.forEach((id: number) => allMemoryIds.add(id));
+          }
+        }
+        
+        
+        if (allMemoryIds.size === 0) {
+          return {
+            content: [
+              {
+                type: 'text',
+                text: JSON.stringify([], null, 2),
+              },
+            ],
+          };
+        }
+        
+        // Query 3: Fetch the actual memories with connections
+        let finalQuery = `
+          MATCH (memory)
+          WHERE id(memory) IN $memoryIds
+        `;
+        
         if (depth > 0) {
-          query += `
-            OPTIONAL MATCH path = (n)-[*1..${depth}]-(related)
-            RETURN n as memory, collect(DISTINCT {
+          finalQuery += `
+            OPTIONAL MATCH path = (memory)-[*1..${depth}]-(related)
+            RETURN memory, collect(DISTINCT {
               memory: related,
               relationship: relationships(path)[0],
               distance: length(path)
@@ -58,17 +133,12 @@ export async function handleToolCall(
             LIMIT ${limit}
           `;
         } else {
-          query += ` RETURN n as memory, [] as connections
+          finalQuery += ` RETURN memory, [] as connections
             ORDER BY ${orderBy}
             LIMIT ${limit}`;
         }
         
-        const params: Record<string, any> = { query: args.query };
-        if (args.label) {
-          params.label = args.label;
-        }
-        
-        const result = await neo4j.executeQuery(query, params);
+        const result = await neo4j.executeQuery(finalQuery, { memoryIds: Array.from(allMemoryIds) });
         
         return {
           content: [
@@ -191,8 +261,8 @@ export async function handleToolCall(
         }
         
         const query = `
-          MATCH (n)
-          WITH labels(n) as nodeLabels
+          MATCH (memory)
+          WITH labels(memory) as nodeLabels
           UNWIND nodeLabels as label
           WITH label, count(*) as count
           ORDER BY count DESC, label
