@@ -8,12 +8,12 @@ WORKDIR /app
 # Copy package.json and package-lock.json to the container
 COPY package.json package-lock.json ./
 
-# Install dependencies
-RUN --mount=type=cache,target=/root/.npm npm install
-
-# Copy the rest of the application code
+# Copy the source files needed for build
 COPY src ./src
 COPY tsconfig.json ./
+
+# Install dependencies (this will also run the prepare script)
+RUN --mount=type=cache,target=/root/.npm npm install
 
 # Build the application
 RUN npm run build
