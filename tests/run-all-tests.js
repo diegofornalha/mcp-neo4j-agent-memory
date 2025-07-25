@@ -18,7 +18,8 @@ const tests = [
   'test-update-connection.js',
   'test-delete-connection.js',
   'test-delete-memory.js',
-  'test-list-memory-labels.js'
+  'test-list-memory-labels.js',
+  'test-get-guidance.js'
 ];
 
 let currentTest = 0;

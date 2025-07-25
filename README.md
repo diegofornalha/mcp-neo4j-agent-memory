@@ -88,10 +88,15 @@ This server now supports connecting to specific databases in Neo4j Enterprise Ed
   - Precise relationship removal
   - Keeps the memories intact
 
-- `list_memory_types`: List all unique memory types in use
-  - Shows all labels/types with counts
+- `list_memory_labels`: List all unique memory labels in use
+  - Shows all labels with counts
   - Helps maintain consistency
-  - Prevents duplicate type variations
+  - Prevents duplicate label variations
+
+- `get_guidance`: Get help on using the memory tools effectively
+  - Topics: labels, relationships, best-practices, examples
+  - Returns comprehensive guidance for LLMs
+  - Use when uncertain about label/relationship naming
 
 ## Prerequisites
 

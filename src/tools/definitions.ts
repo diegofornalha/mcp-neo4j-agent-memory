@@ -1,21 +1,16 @@
 import { Tool } from '@modelcontextprotocol/sdk/types.js';
+import { guidanceTool } from './guidance-tool.js';
 
+/**
+ * MCP Neo4j Agent Memory Tools
+ * 
+ * Tool descriptions are kept simple to avoid breaking prompt templates in 3rd party solutions.
+ * Use the get_guidance tool to access detailed information about labels, relationships, and best practices.
+ */
 export const tools: Tool[] = [
   {
     name: 'search_memories',
-    description: `Search and retrieve memories from the knowledge graph.
-
-Parameters:
-- query: Search text (can be empty string to get all memories)
-- label: Optional - filter by memory label (e.g., "person", "project", "place")
-- depth: How many relationship levels to include (default: 1)
-- order_by: Sort field (default: "created_at DESC")
-- limit: Max results (default: 10, max: 200)
-
-Examples:
-- Search by name: search_memories({"query": "John"})
-- Search by label: search_memories({"query": "", "label": "person"})
-- Get all with relationships: search_memories({"query": "", "depth": 2})`,
+    description: 'Search and retrieve memories from the knowledge graph',
     inputSchema: {
       type: 'object',
       properties: {
@@ -29,15 +24,15 @@ Examples:
         },
         depth: {
           type: 'number',
-          description: 'Relationship depth to include (default: 1)',
+          description: 'Relationship depth to include, defaults to 1',
         },
         order_by: {
           type: 'string',
-          description: 'Sort order (e.g., "created_at DESC")',
+          description: 'Sort order such as created_at DESC, name ASC',
         },
         limit: {
           type: 'number',
-          description: 'Maximum results to return',
+          description: 'Maximum results to return, defaults to 10, max 200',
         },
       },
       required: ['query'],
@@ -45,35 +40,13 @@ Examples:
   },
   {
     name: 'create_memory',
-    description: `Create a new memory in the knowledge graph.
-
-Parameters:
-- label: The label/category of memory in lowercase (see common labels below)
-- properties: Key-value pairs of information to store
-
-Note: Memories in Neo4j can have multiple labels, but this tool currently supports single labels only. Future versions may support multiple labels.
-
-Common memory labels (use lowercase):
-- person, place, organization, project, event, topic
-- object, animal, plant, food, activity, media
-- skill, document, meeting, task, habit
-- health, vehicle, tool, idea, goal
-
-The properties should include:
-- name: A descriptive name for the memory (recommended)
-- created_at: Will be auto-added if not provided
-- Any other relevant attributes
-
-Examples:
-- Person: create_memory({"label": "person", "properties": {"name": "John Doe", "age": 30}})
-- Project: create_memory({"label": "project", "properties": {"name": "Website Redesign", "status": "active"}})
-- Skill: create_memory({"label": "skill", "properties": {"name": "Python Programming", "level": "expert"}})`,
+    description: 'Create a new memory in the knowledge graph',
     inputSchema: {
       type: 'object',
       properties: {
         label: {
           type: 'string',
-          description: 'Memory label in lowercase (e.g., person, project, skill). Note: Currently supports single labels only.',
+          description: 'Memory label in lowercase such as person, place, organization, project, event, topic, object, animal, plant, food, activity, media, skill, document, meeting, task, habit, health, vehicle, tool, idea, goal',
         },
         properties: {
           type: 'object',
@@ -86,28 +59,7 @@ Examples:
   },
   {
     name: 'create_connection',
-    description: `Create a connection between two memories.
-
-Parameters:
-- fromMemoryId: ID of the source memory (use search_memories to find IDs)
-- toMemoryId: ID of the target memory
-- type: Relationship type (e.g., "KNOWS", "WORKS_ON", "LIVES_IN")
-- properties: Optional metadata about the relationship
-
-Common relationship types:
-- People: KNOWS, FRIENDS_WITH, MARRIED_TO, MANAGES, REPORTS_TO
-- Work: WORKS_AT, WORKS_ON, COLLABORATES_WITH, OWNS
-- Location: LIVES_IN, LOCATED_IN, VISITED, FROM
-- Skills: HAS_SKILL, TEACHES, LEARNS_FROM
-- Projects: LEADS, PARTICIPATES_IN, CREATED, USES
-
-Example:
-create_connection({
-  "fromMemoryId": 123,
-  "toMemoryId": 456,
-  "type": "WORKS_ON",
-  "properties": {"role": "Lead Developer", "since": "2023-01-01"}
-})`,
+    description: 'Create a connection between two memories',
     inputSchema: {
       type: 'object',
       properties: {
@@ -121,7 +73,7 @@ create_connection({
         },
         type: {
           type: 'string',
-          description: 'Type of relationship',
+          description: 'Relationship type such as KNOWS, WORKS_ON, LIVES_IN, HAS_SKILL, PARTICIPATES_IN',
         },
         properties: {
           type: 'object',
@@ -134,18 +86,7 @@ create_connection({
   },
   {
     name: 'update_memory',
-    description: `Update properties of an existing memory.
-
-Parameters:
-- nodeId: The ID of the memory to update (from search_memories)
-- properties: Key-value pairs to update or add
-
-Examples:
-- Update age: update_memory({"nodeId": 123, "properties": {"age": 31}})
-- Add location: update_memory({"nodeId": 123, "properties": {"city": "London"}})
-- Update status: update_memory({"nodeId": 456, "properties": {"status": "completed"}})
-
-Note: This updates existing properties and adds new ones. To remove a property, set it to null.`,
+    description: 'Update properties of an existing memory',
     inputSchema: {
       type: 'object',
       properties: {
@@ -164,27 +105,7 @@ Note: This updates existing properties and adds new ones. To remove a property, 
   },
   {
     name: 'update_connection',
-    description: `Update properties of an existing relationship.
-
-Parameters:
-- fromMemoryId: ID of the source memory
-- toMemoryId: ID of the target memory
-- type: The exact relationship type
-- properties: Properties to update or add
-
-Use when relationship details change:
-- Update role in project
-- Change relationship status
-- Add end date to relationships
-- Update relationship metadata
-
-Example:
-update_connection({
-  "fromMemoryId": 123,
-  "toMemoryId": 456,
-  "type": "WORKS_ON",
-  "properties": {"role": "Senior Developer", "end_date": "2024-12-31"}
-})`,
+    description: 'Update properties of an existing relationship',
     inputSchema: {
       type: 'object',
       properties: {
@@ -211,19 +132,7 @@ update_connection({
   },
   {
     name: 'delete_memory',
-    description: `Delete a memory and all its connections.
-
-Parameters:
-- nodeId: ID of the memory to delete
-
-⚠️ Warning: This permanently removes the memory and all its connections.
-
-Use with caution - only when:
-- User explicitly requests deletion
-- Correcting duplicate entries
-- Privacy/data removal requests
-
-Always confirm with user before deleting.`,
+    description: 'Delete a memory and all its connections',
     inputSchema: {
       type: 'object',
       properties: {
@@ -237,24 +146,7 @@ Always confirm with user before deleting.`,
   },
   {
     name: 'delete_connection',
-    description: `Delete a specific connection between two memories.
-
-Parameters:
-- fromMemoryId: ID of the source memory
-- toMemoryId: ID of the target memory
-- type: The exact relationship type to delete
-
-Use when:
-- Relationship no longer valid
-- Correcting mistaken connections
-- Updating relationship types
-
-Example:
-delete_connection({
-  "fromMemoryId": 123,
-  "toMemoryId": 456,
-  "type": "WORKS_AT"
-})`,
+    description: 'Delete a specific connection between two memories',
     inputSchema: {
       type: 'object',
       properties: {
@@ -268,7 +160,7 @@ delete_connection({
         },
         type: {
           type: 'string',
-          description: 'Exact relationship type to delete (e.g., WORKS_FOR, LIVES_IN)',
+          description: 'Exact relationship type to delete',
         },
       },
       required: ['fromMemoryId', 'toMemoryId', 'type'],
@@ -276,33 +168,12 @@ delete_connection({
   },
   {
     name: 'list_memory_labels',
-    description: `List all unique memory labels currently in use with their counts.
-
-This tool helps the LLM understand what types of memories already exist in the knowledge graph, promoting consistency and preventing duplicate types.
-
-Returns:
-- A list of all unique labels/types with their counts as regular numbers
-- Each type entry includes the type name and count of memories
-- Total number of memories across all types
-
-Example JSON output:
-[{
-  "types": [
-    {"label": "person", "count": 16},
-    {"label": "place", "count": 7},
-    {"label": "project", "count": 5}
-  ],
-  "totalMemories": 40
-}]
-
-Use this before creating new memories to:
-- Check if a similar label already exists
-- Maintain naming consistency
-- Avoid creating duplicate labels with slight variations`,
+    description: 'List all unique memory labels currently in use with their counts',
     inputSchema: {
       type: 'object',
       properties: {},
       required: [],
     },
   },
+  guidanceTool,
 ];

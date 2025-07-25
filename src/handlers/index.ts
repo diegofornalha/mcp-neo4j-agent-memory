@@ -10,6 +10,7 @@ import {
   isDeleteConnectionArgs,
   isListMemoryLabelsArgs
 } from '../types.js';
+import { isGetGuidanceArgs, getGuidanceContent } from '../tools/guidance-tool.js';
 
 export async function handleToolCall(
   name: string,
@@ -205,6 +206,23 @@ export async function handleToolCall(
             {
               type: 'text',
               text: JSON.stringify(result, null, 2),
+            },
+          ],
+        };
+      }
+
+      case 'get_guidance': {
+        if (!isGetGuidanceArgs(args)) {
+          throw new McpError(ErrorCode.InvalidParams, 'Invalid get_guidance arguments');
+        }
+        
+        const content = getGuidanceContent(args.topic);
+        
+        return {
+          content: [
+            {
+              type: 'text',
+              text: content,
             },
           ],
         };
