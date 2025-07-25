@@ -15,7 +15,7 @@ Add the following entry to the Community Servers section in README.md (in alphab
 ```
 
 ## Why this server is useful
-- Provides specialized memory tools optimized for AI agents and voice assistants
+- Provides specialized memory tools optimized for AI agents
 - Implements an LLM-driven approach where the AI handles all intelligence
 - Offers flexible memory types and semantic relationships
 - Helps AI agents build and query knowledge graphs effectively

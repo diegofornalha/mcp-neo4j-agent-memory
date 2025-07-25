@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is an MCP (Model Context Protocol) server that bridges Neo4j graph database with Claude Desktop. It provides both basic Neo4j operations and specialized memory-focused tools optimized for voice assistants and conversational AI.
+This is an MCP (Model Context Protocol) server that bridges Neo4j graph database with Claude Desktop. It provides both basic Neo4j operations and specialized memory-focused tools optimized for AI agents and conversational AI.
 
 ## Key Architecture
 

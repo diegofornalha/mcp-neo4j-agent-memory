@@ -2,7 +2,7 @@
 
 ![Neo4j Agent Memory Banner](./images/neo4j-agent-memory-05.png)
 
-A specialized MCP server that bridges Neo4j graph database with AI voice assistants, providing memory-focused tools for storing, recalling, and connecting information in a knowledge graph.
+A specialized MCP server that bridges Neo4j graph database with AI agents, providing memory-focused tools for storing, recalling, and connecting information in a knowledge graph.
 
 ## Quick Start
 
@@ -374,7 +374,7 @@ npm test
 
 ## Attribution
 
-This project was originally forked from [da-okazaki/mcp-neo4j-server](https://github.com/da-okazaki/mcp-neo4j-server) and has been significantly extended with specialized memory-focused tools for AI voice assistants. Special thanks to Daichi Okazaki for the foundational Neo4j MCP implementation.
+This project was originally forked from [da-okazaki/mcp-neo4j-server](https://github.com/da-okazaki/mcp-neo4j-server) and has been significantly extended with specialized memory-focused tools for AI agents. Special thanks to Daichi Okazaki for the foundational Neo4j MCP implementation.
 
 ## License
 
