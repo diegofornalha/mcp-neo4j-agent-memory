@@ -380,3 +380,5 @@ This project was originally forked from [da-okazaki/mcp-neo4j-server](https://gi
 
 MIT
 
+---
+
