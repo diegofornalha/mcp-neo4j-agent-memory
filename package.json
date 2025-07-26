@@ -1,7 +1,7 @@
 {
   "name": "@knowall-ai/mcp-neo4j-agent-memory",
   "version": "0.2.4",
-  "description": "Neo4j MCP server for AI agents with memory-focused tools and relationship management",
+  "description": "Graph-based memory system for AI agents. Store people, places, organizations as nodes. Build semantic relationships (KNOWS, WORKS_AT, CREATED). Word-tokenized search finds partial matches. Filter by date, traverse relationships, maintain temporal context. Simple tools, LLM handles complexity. 10 tools for complete memory management.",
   "type": "module",
   "module": "./src/index.ts",
   "bin": {

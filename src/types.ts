@@ -11,11 +11,12 @@ export interface CreateMemoryArgs {
 }
 
 export interface SearchMemoriesArgs {
-  query: string;
+  query?: string;
   label?: string;
   depth?: number;
   order_by?: string;
   limit?: number;
+  since_date?: string;
 }
 
 export interface CreateConnectionArgs {
@@ -56,7 +57,11 @@ export function isCreateMemoryArgs(args: unknown): args is CreateMemoryArgs {
 }
 
 export function isSearchMemoriesArgs(args: unknown): args is SearchMemoriesArgs {
-  return typeof args === 'object' && args !== null && typeof (args as SearchMemoriesArgs).query === 'string';
+  if (typeof args !== 'object' || args === null) return false;
+  const searchArgs = args as SearchMemoriesArgs;
+  if (searchArgs.query !== undefined && typeof searchArgs.query !== 'string') return false;
+  if (searchArgs.since_date !== undefined && typeof searchArgs.since_date !== 'string') return false;
+  return true;
 }
 
 export function isCreateConnectionArgs(args: unknown): args is CreateConnectionArgs {

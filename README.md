@@ -4,7 +4,7 @@
 
 A specialized MCP server that bridges Neo4j graph database with AI agents, providing memory-focused tools for storing, recalling, and connecting information in a knowledge graph.
 
-## Quick Start
+## Quick Start 🚀
 
 You can run this MCP server directly using npx:
 
@@ -33,7 +33,16 @@ Or add it to your Claude Desktop configuration:
 
 ## Features
 
-This server provides memory management tools for AI agents with a simplified, LLM-friendly interface.
+- 🧠 **Persistent Memory Storage** - Store and retrieve memories across conversations
+- 🔗 **Semantic Relationships** - Create meaningful connections between memories (KNOWS, WORKS_AT, CREATED, etc.)
+- 🔍 **Intelligent Search** - Natural language search across all memory properties and relationships
+- 🏷️ **Flexible Labeling** - Use any label for memories (person, place, project, idea, etc.)
+- ⏰ **Temporal Tracking** - Automatic timestamps and date-based queries
+- 🌐 **Graph Exploration** - Traverse relationships to discover connected information
+- 🎯 **Context-Aware** - Search with depth to include related memories
+- 🔧 **LLM-Optimized** - Simple tools that let the AI handle the complexity
+- 🏢 **Enterprise Ready** - Supports multiple Neo4j databases
+- 📚 **Built-in Guidance** - Get help on best practices and usage patterns
 
 ## Philosophy: LLM-Driven Intelligence
 
@@ -44,6 +53,12 @@ Unlike traditional approaches that embed complex logic in tools, this server pro
 - **Transparent operations**: Every action is explicit and predictable
 - **Maximum flexibility**: The LLM can implement any strategy without tool limitations
 
+### Search Behavior
+The `search_memories` tool uses word tokenization:
+- Query "John Smith" finds memories containing "John" OR "Smith"
+- This returns more results, letting the LLM pick the most relevant
+- Better than exact substring matching for names and multi-word queries
+
 This approach makes the system more powerful and adaptable, as improvements in LLM capabilities directly translate to better memory management.
 
 ### Neo4j Enterprise Support
@@ -53,8 +68,10 @@ This server now supports connecting to specific databases in Neo4j Enterprise Ed
 ### Memory Tools
 
 - `search_memories`: Search and retrieve memories from the knowledge graph
-  - Natural language search across all memory properties
+  - **Word-based search**: Searches for ANY word in your query (e.g., "Ben Weeks" finds memories containing "Ben" OR "Weeks")
+  - Natural language search across all memory properties (or leave empty to get all)
   - Filter by memory type (person, place, project, etc.)
+  - Filter by date with `since_date` parameter (ISO format)
   - Control relationship depth and result limits
   - Sort by any field (created_at, name, etc.)
 
@@ -283,19 +300,43 @@ Connected Premium Coffee to Colombian Supplier
 
 The LLM can handle complex queries by intelligently using the search tools:
 
+#### Word-Based Search
 ```
-User: "Find all products purchased by customers who live in New York"
+User: "Find Ben Weeks"
 
-Assistant: I'll search for customers in New York and their purchases.
+Assistant: I'll search for memories containing "Ben" or "Weeks".
 
-[LLM strategy:
-1. search_memories({"query": "New York", "type": "Customer", "depth": 2})
-2. Analyzes the results to find PURCHASED relationships
-3. Aggregates the data]
+[LLM uses: search_memories({"query": "Ben Weeks"})]
 
-Customers in New York and their purchases:
-- Alice Wilson: Premium Coffee, Tea Set, Cookies
-- Bob Miller: Premium Coffee, Water Bottle
+I found several people matching your search:
+- Ben Weeks - Software Engineer at TechCorp (exact match)
+- Sarah Ben - Data Scientist at DataCo (contains "Ben")
+- John Weeks - Project Manager (contains "Weeks")
+
+The most likely match appears to be Ben Weeks, the Software Engineer.
+```
+
+Note: The search finds ANY word from your query, allowing the LLM to present all potentially relevant results and identify the best match based on context.
+
+#### Recent Memories (Last 7 Days)
+```
+User: "What new people have I met in the last week?"
+
+Assistant: I'll search for people added to your memory in the last 7 days.
+
+[LLM calculates the date 7 days ago and uses: 
+search_memories({
+  "query": "", 
+  "label": "person", 
+  "since_date": "2024-01-20T00:00:00Z",
+  "order_by": "created_at DESC"
+})]
+
+Here are the new people you've met in the last week:
+- Sarah Chen - Met at tech conference on Monday
+- Dr. Michael Roberts - New physician, first appointment Tuesday  
+- Emma Wilson - Joined your project team on Wednesday
+- James Park - Coffee meeting about potential collaboration Thursday
 ```
 
 #### Disambiguation
@@ -311,6 +352,23 @@ Assistant: I found multiple people named John. Let me show you what I know:
 3. John Brown - Project Manager on Project Atlas
 
 Which John were you asking about?
+```
+
+#### Temporal Queries
+```
+User: "What events did I attend last month?"
+
+Assistant: I'll search for event memories and check their dates.
+
+[LLM uses: search_memories({"query": "", "label": "event", "sort_by": "created_at", "sort_order": "desc"})]
+
+[Filters results to last month based on created_at or date properties]
+
+Here are the events you attended last month:
+- Tech Innovation Summit (March 5-6) - Keynote speaker
+- Team Building Workshop (March 12) - With engineering team
+- Client Dinner Meeting (March 18) - Project kickoff with ABC Corp
+- WebDev Conference (March 25-27) - Attended 5 sessions on React
 ```
 
 ### Flexible Memory Types
@@ -372,9 +430,26 @@ Run the test suite:
 npm test
 ```
 
-## Attribution
+### Interactive Testing with MCP Inspector
 
-This project was originally forked from [da-okazaki/mcp-neo4j-server](https://github.com/da-okazaki/mcp-neo4j-server) and has been significantly extended with specialized memory-focused tools for AI agents. Special thanks to Daichi Okazaki for the foundational Neo4j MCP implementation.
+For interactive testing and debugging, use the MCP Inspector:
+
+```bash
+# Quick start with environment variables from .env
+./run-inspector.sh
+
+# Or manually with specific environment variables
+NEO4J_URI=bolt://localhost:7687 \
+NEO4J_USERNAME=neo4j \
+NEO4J_PASSWORD=your-password \
+npx @modelcontextprotocol/inspector build/index.js
+```
+
+The inspector provides a web UI to:
+- Test all available tools interactively
+- See real-time request/response data
+- Validate your Neo4j connection
+- Debug tool parameters and responses
 
 ## License
 

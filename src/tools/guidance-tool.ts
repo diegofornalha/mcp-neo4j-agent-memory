@@ -34,10 +34,12 @@ export function getGuidanceContent(topic?: string): string {
 
 **Example Flow**
 1. User: "John works at Google as a software engineer"
-2. Create memory for John (person)
-3. Search for Google (organization) - create if missing
-4. Connect: John -[WORKS_AT]-> Google
-5. Add properties: role="Software Engineer", since="2020"
+2. **Search for John first** - he might already exist!
+3. If not found, create memory for John (person)
+4. **Search for Google** - it probably already exists
+5. If not found, create Google (organization)
+6. Connect: John -[WORKS_AT]-> Google
+7. Add properties: role="Software Engineer", since="2020"
 
 **Connection Patterns**
 - Person -> Organization (WORKS_AT, FOUNDED, OWNS)
@@ -125,11 +127,16 @@ Use UPPERCASE for relationship types:
 - A memory without connections is like a book with no catalog entry
 - The graph becomes exponentially more useful with each connection
 
-**Creating Memories**
+**Creating Memories - ALWAYS SEARCH FIRST**
+- **CRITICAL: Always search before creating** - memories often already exist
+- Search by name first: search_memories({query: "John Smith"})
+- If multiple matches found, **ASK THE USER TO CONFIRM** which one they mean
+- Show distinguishing details: "I found 3 people named John: John Smith (Engineer at Google), John Smith (Doctor), John Smith (Teacher). Which one did you mean?"
+- If unsure about a match, describe it and ask: "I found John Smith who works at TechCorp. Is this the same person?"
+- Only create new memory after confirming it's not a duplicate
 - Always use lowercase for labels
 - Include a 'name' property for easy identification
-- Add 'created_at' is automatic if not provided
-- Use search_memories first to avoid duplicates
+- 'created_at' is automatic if not provided
 - IMMEDIATELY after creating, connect it to related memories
 
 **Building Connections**
@@ -159,16 +166,24 @@ Use UPPERCASE for relationship types:
 
     examples: `## Examples
 
-**Creating a Person**
+**Creating a Person (WITH SEARCH FIRST)**
 \`\`\`
-create_memory({
-  label: "person",
-  properties: {
-    name: "Alice Johnson",
-    occupation: "Software Engineer",
-    company: "Tech Corp"
-  }
-})
+// ALWAYS search first to avoid duplicates
+const searchResult = search_memories({ query: "Alice Johnson" })
+
+if (searchResult.length === 0) {
+  // Only create if not found
+  create_memory({
+    label: "person",
+    properties: {
+      name: "Alice Johnson",
+      occupation: "Software Engineer",
+      company: "Tech Corp"
+    }
+  })
+} else {
+  // Use existing memory ID: searchResult[0].memory._id
+}
 \`\`\`
 
 **Creating a Relationship**
@@ -187,6 +202,29 @@ create_connection({
     since: "2020-01-15"
   }
 })
+\`\`\`
+
+**Handling Ambiguous Matches**
+\`\`\`
+// User says: "Add that Sarah works at Microsoft"
+const searchResult = search_memories({ query: "Sarah" })
+
+// Found multiple matches - ASK USER TO CONFIRM
+if (searchResult.length > 1) {
+  // Show options to user:
+  // "I found 3 people named Sarah:
+  // 1. Sarah Johnson (Marketing Manager at TechCorp)
+  // 2. Sarah Chen (Data Scientist)
+  // 3. Sarah Williams (Designer at StartupXYZ)
+  // Which Sarah works at Microsoft?"
+}
+
+// If only one match but uncertain
+if (searchResult.length === 1) {
+  // Confirm with user:
+  // "I found Sarah Johnson who is a Marketing Manager at TechCorp. 
+  // Is this the Sarah who now works at Microsoft?"
+}
 \`\`\`
 
 **Searching with Depth**

@@ -37,45 +37,66 @@ export async function handleToolCall(
           }
         }
         
-        const params: Record<string, any> = { query: args.query };
-        if (args.label) {
-          params.label = args.label;
-        }
+        const params: Record<string, any> = {};
+        if (args.query) params.query = args.query;
+        if (args.label) params.label = args.label;
+        if (args.since_date) params.since_date = args.since_date;
         
         // Try a different approach: execute simple queries and handle complexity in JavaScript
         const allMemoryIds = new Set<number>();
         
         try {
-          // First, get all memories that match the label filter (if any)
+          // First, get all memories that match the label and date filters (if any)
           let baseQuery = `MATCH (memory)`;
+          const conditions = [];
+          
           if (args.label) {
-            baseQuery += ` WHERE labels(memory)[0] = $label`;
+            conditions.push(`labels(memory)[0] = $label`);
           }
+          
+          if (args.since_date) {
+            conditions.push(`memory.created_at >= $since_date`);
+          }
+          
+          if (conditions.length > 0) {
+            baseQuery += ` WHERE ` + conditions.join(' AND ');
+          }
+          
           baseQuery += ` RETURN id(memory) as id, properties(memory) as props`;
           
-          const allMemories = await neo4j.executeQuery(baseQuery, { label: args.label });
+          const queryParams: Record<string, any> = {};
+          if (args.label) queryParams.label = args.label;
+          if (args.since_date) queryParams.since_date = args.since_date;
+          
+          const allMemories = await neo4j.executeQuery(baseQuery, queryParams);
           
           // Filter in JavaScript
           for (const record of allMemories) {
             const props = record.props;
+            
+            // If query is empty, include all memories (they already match label/date filters)
+            if (!args.query || args.query.trim() === '') {
+              allMemoryIds.add(record.id);
+              continue;
+            }
+            
+            // Split query into words for more flexible matching
+            const queryWords = args.query.toLowerCase().trim().split(/\s+/);
             let found = false;
             
             // Search through all properties
             for (const [key, value] of Object.entries(props)) {
               if (value === null || value === undefined) continue;
               
-              if (Array.isArray(value)) {
-                // Handle array properties
-                for (const item of value) {
-                  if (item && item.toString().toLowerCase().includes(args.query.toLowerCase())) {
-                    found = true;
-                    break;
-                  }
-                }
-              } else {
-                // Handle non-array properties
-                if (value.toString().toLowerCase().includes(args.query.toLowerCase())) {
+              const valueStr = Array.isArray(value) 
+                ? value.map(v => v?.toString() || '').join(' ').toLowerCase()
+                : value.toString().toLowerCase();
+              
+              // Check if ANY query word is found in this property
+              for (const word of queryWords) {
+                if (valueStr.includes(word)) {
                   found = true;
+                  break;
                 }
               }
               
@@ -88,16 +109,32 @@ export async function handleToolCall(
         } catch (error) {
           console.error('Error in search:', error);
           // Fallback to a simpler query if the above fails
-          const fallbackQuery = `
-            MATCH (memory)
-            WHERE memory.name CONTAINS $query
-               OR memory.context CONTAINS $query
-               OR memory.description CONTAINS $query
-            ${args.label ? 'AND labels(memory)[0] = $label' : ''}
-            RETURN collect(DISTINCT id(memory)) as memoryIds
-          `;
+          const conditions = [];
           
-          const fallbackResults = await neo4j.executeQuery(fallbackQuery, params);
+          if (args.query && args.query.trim() !== '') {
+            conditions.push('(memory.name CONTAINS $query OR memory.context CONTAINS $query OR memory.description CONTAINS $query)');
+          }
+          
+          if (args.label) {
+            conditions.push('labels(memory)[0] = $label');
+          }
+          
+          if (args.since_date) {
+            conditions.push('memory.created_at >= $since_date');
+          }
+          
+          let fallbackQuery = `MATCH (memory)`;
+          if (conditions.length > 0) {
+            fallbackQuery += ` WHERE ${conditions.join(' AND ')}`;
+          }
+          fallbackQuery += ` RETURN collect(DISTINCT id(memory)) as memoryIds`;
+          
+          const fallbackParams: Record<string, any> = {};
+          if (args.query) fallbackParams.query = args.query;
+          if (args.label) fallbackParams.label = args.label;
+          if (args.since_date) fallbackParams.since_date = args.since_date;
+          
+          const fallbackResults = await neo4j.executeQuery(fallbackQuery, fallbackParams);
           if (fallbackResults.length > 0 && fallbackResults[0].memoryIds) {
             fallbackResults[0].memoryIds.forEach((id: number) => allMemoryIds.add(id));
           }

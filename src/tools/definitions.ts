@@ -16,7 +16,7 @@ export const tools: Tool[] = [
       properties: {
         query: {
           type: 'string',
-          description: 'Search text to find in any property',
+          description: 'Search text to find in any property (searches for ANY word - e.g. "Ben Weeks" finds memories containing "Ben" OR "Weeks")',
         },
         label: {
           type: 'string',
@@ -34,23 +34,27 @@ export const tools: Tool[] = [
           type: 'number',
           description: 'Maximum results to return, defaults to 10, max 200',
         },
+        since_date: {
+          type: 'string',
+          description: 'ISO date string to filter memories created after this date (e.g., "2024-01-01" or "2024-01-01T00:00:00Z")',
+        },
       },
-      required: ['query'],
+      required: [],
     },
   },
   {
     name: 'create_memory',
-    description: 'Create a new memory in the knowledge graph (remember to connect it to related memories)',
+    description: 'Create a new memory in the knowledge graph. Consider that the memory might already exist, so Search → Create → Connect (its important to try and connect memories)',
     inputSchema: {
       type: 'object',
       properties: {
         label: {
           type: 'string',
-          description: 'Memory label in lowercase such as person, place, organization, project, event, topic, object, animal, plant, food, activity, media, skill, document, meeting, task, habit, health, vehicle, tool, idea, goal',
+          description: 'Memory label in lowercase (use list_memory_labels first to check existing labels for consistency) - common: person, place, organization, project, event, topic, object, animal, plant, food, activity, media, skill, document, meeting, task, habit, health, vehicle, tool, idea, goal',
         },
         properties: {
           type: 'object',
-          description: 'Information to store about this memory',
+          description: 'Information to store about this memory (use "name" as primary identifier, e.g. {name: "John Smith", age: 30, occupation: "Engineer"})',
           additionalProperties: true,
         },
       },
@@ -59,7 +63,7 @@ export const tools: Tool[] = [
   },
   {
     name: 'create_connection',
-    description: 'Create a connection between two memories',
+    description: 'Create a connection between two memories (its good to have connected memories)',
     inputSchema: {
       type: 'object',
       properties: {
@@ -77,7 +81,7 @@ export const tools: Tool[] = [
         },
         properties: {
           type: 'object',
-          description: 'Optional relationship metadata',
+          description: 'Optional relationship metadata (e.g. {since: "2023-01", role: "Manager", status: "active"})',
           additionalProperties: true,
         },
       },
@@ -86,7 +90,7 @@ export const tools: Tool[] = [
   },
   {
     name: 'update_memory',
-    description: 'Update properties of an existing memory',
+    description: 'Update properties of an existing memory such as adding more detail or make a change when you find out something new',
     inputSchema: {
       type: 'object',
       properties: {
@@ -105,7 +109,7 @@ export const tools: Tool[] = [
   },
   {
     name: 'update_connection',
-    description: 'Update properties of an existing relationship',
+    description: 'Update properties of an existing connection between memories',
     inputSchema: {
       type: 'object',
       properties: {
@@ -119,11 +123,11 @@ export const tools: Tool[] = [
         },
         type: {
           type: 'string',
-          description: 'Relationship type',
+          description: 'Relationship type to identify which connection to update (e.g. WORKS_AT, KNOWS, MANAGES)',
         },
         properties: {
           type: 'object',
-          description: 'Properties to update/add',
+          description: 'Properties to update/add (e.g. {status: "completed", end_date: "2024-01"})',
           additionalProperties: true,
         },
       },
@@ -132,7 +136,7 @@ export const tools: Tool[] = [
   },
   {
     name: 'delete_memory',
-    description: 'Delete a memory and all its connections',
+    description: 'Delete a memory and all its connections (use with caution - this permanently removes the memory and all its connections)',
     inputSchema: {
       type: 'object',
       properties: {
@@ -146,7 +150,7 @@ export const tools: Tool[] = [
   },
   {
     name: 'delete_connection',
-    description: 'Delete a specific connection between two memories',
+    description: 'Delete a specific connection between two memories (use with caution - this permanently removes the relationship)',
     inputSchema: {
       type: 'object',
       properties: {
@@ -160,7 +164,7 @@ export const tools: Tool[] = [
         },
         type: {
           type: 'string',
-          description: 'Exact relationship type to delete',
+          description: 'Exact relationship type to delete (e.g. WORKS_AT, KNOWS, MANAGES)',
         },
       },
       required: ['fromMemoryId', 'toMemoryId', 'type'],
@@ -168,7 +172,7 @@ export const tools: Tool[] = [
   },
   {
     name: 'list_memory_labels',
-    description: 'List all unique memory labels currently in use with their counts',
+    description: 'List all unique memory labels currently in use with their counts (useful for getting an overview of the knowledge graph)',
     inputSchema: {
       type: 'object',
       properties: {},
