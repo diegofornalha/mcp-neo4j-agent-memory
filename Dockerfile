@@ -28,10 +28,8 @@ WORKDIR /app
 COPY --from=builder /app/build ./build
 COPY --from=builder /app/node_modules ./node_modules
 
-# Set environment variables
-ENV NEO4J_URI=bolt://localhost:7687
-ENV NEO4J_USERNAME=neo4j
-# NEO4J_PASSWORD should be set at runtime
+# Don't set default environment variables to ensure proper tool discovery
+# These should be provided at runtime
 
 # Specify the command to run the application
 ENTRYPOINT ["node", "build/index.js"]
