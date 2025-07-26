@@ -1,6 +1,6 @@
 {
   "name": "@knowall-ai/mcp-neo4j-agent-memory",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Neo4j MCP server for AI agents with memory-focused tools and relationship management",
   "type": "module",
   "module": "./src/index.ts",
