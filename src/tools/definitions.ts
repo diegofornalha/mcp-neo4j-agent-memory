@@ -40,7 +40,7 @@ export const tools: Tool[] = [
   },
   {
     name: 'create_memory',
-    description: 'Create a new memory in the knowledge graph',
+    description: 'Create a new memory in the knowledge graph (remember to connect it to related memories)',
     inputSchema: {
       type: 'object',
       properties: {

@@ -8,7 +8,7 @@ export const guidanceTool: Tool = {
     properties: {
       topic: {
         type: 'string',
-        description: 'Topic: labels, relationships, best-practices, examples, or leave empty for all',
+        description: 'Topic: connections, labels, relationships, best-practices, examples, or leave empty for all',
       },
     },
     required: [],
@@ -17,6 +17,36 @@ export const guidanceTool: Tool = {
 
 export function getGuidanceContent(topic?: string): string {
   const sections = {
+    connections: `## The Power of Connections
+
+**Why Connections Matter**
+- Isolated memories = limited utility
+- Connected memories = exponential value
+- Each connection adds context and meaning
+- Enables discovery of hidden patterns
+
+**Connection Strategy**
+1. Create the memory first
+2. Immediately ask: "What does this relate to?"
+3. Search for related memories
+4. Create meaningful connections
+5. Add properties to connections for context
+
+**Example Flow**
+1. User: "John works at Google as a software engineer"
+2. Create memory for John (person)
+3. Search for Google (organization) - create if missing
+4. Connect: John -[WORKS_AT]-> Google
+5. Add properties: role="Software Engineer", since="2020"
+
+**Connection Patterns**
+- Person -> Organization (WORKS_AT, FOUNDED, OWNS)
+- Person -> Person (KNOWS, MANAGES, MARRIED_TO)
+- Person -> Skill (HAS_SKILL)
+- Person -> Place (LIVES_IN, FROM)
+- Project -> Person (LED_BY, INVOLVES)
+- Event -> Person (ATTENDED_BY, ORGANIZED_BY)`,
+
     labels: `## Common Memory Labels
 
 Use these labels when creating memories (always use lowercase):
@@ -89,16 +119,29 @@ Use UPPERCASE for relationship types:
 
     'best-practices': `## Best Practices
 
+**CRITICAL: Always Create Connections**
+- Isolated memories have limited value - ALWAYS look for connections
+- When storing new information, immediately think: "What does this relate to?"
+- A memory without connections is like a book with no catalog entry
+- The graph becomes exponentially more useful with each connection
+
 **Creating Memories**
 - Always use lowercase for labels
 - Include a 'name' property for easy identification
 - Add 'created_at' is automatic if not provided
 - Use search_memories first to avoid duplicates
+- IMMEDIATELY after creating, connect it to related memories
+
+**Building Connections**
+- After creating any memory, ask: "What existing memories relate to this?"
+- Create connections for: people→organizations, people→projects, people→skills
+- Add relationship properties for rich context (since, role, status)
+- One memory can have many connections - don't limit yourself
 
 **Searching**
 - Empty query string returns all memories
 - Use label parameter to filter by type
-- Increase depth to include more relationships
+- Increase depth to include more relationships (depth=2 or 3 for rich context)
 - Default limit is 10, max is 200
 
 **Managing Relationships**
@@ -111,7 +154,8 @@ Use UPPERCASE for relationship types:
 - Keep labels simple and consistent
 - Reuse existing labels when possible
 - Add descriptive properties to memories
-- Use relationships instead of complex properties`,
+- Use relationships instead of complex properties
+- Think in graphs: nodes (memories) + edges (relationships) = knowledge`,
 
     examples: `## Examples
 
@@ -172,6 +216,8 @@ update_memory({
     // Return all sections
     return `# Neo4j Agent Memory Guidance
 
+${sections.connections}
+
 ${sections.labels}
 
 ${sections.relationships}
@@ -186,7 +232,7 @@ ${sections.examples}`;
     return content;
   }
 
-  return `Unknown topic: '${topic}'. Available topics: labels, relationships, best-practices, examples, or leave empty for all guidance.`;
+  return `Unknown topic: '${topic}'. Available topics: connections, labels, relationships, best-practices, examples, or leave empty for all guidance.`;
 }
 
 // Type guard for get_guidance arguments
