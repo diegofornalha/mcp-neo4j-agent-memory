@@ -1,6 +1,16 @@
 #!/usr/bin/env node
 import { Neo4jServer } from './server.js';
 
+// Debug environment for Smithery
+if (process.env.DEBUG_SMITHERY) {
+  console.error('Environment variables:', {
+    NEO4J_URI: process.env.NEO4J_URI,
+    NEO4J_USERNAME: process.env.NEO4J_USERNAME,
+    NEO4J_PASSWORD: process.env.NEO4J_PASSWORD,
+    NEO4J_DATABASE: process.env.NEO4J_DATABASE
+  });
+}
+
 // Check if we have database configuration (ignore empty strings)
 const uri = process.env.NEO4J_URI?.trim();
 const username = process.env.NEO4J_USERNAME?.trim();
