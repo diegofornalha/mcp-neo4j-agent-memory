@@ -5,8 +5,7 @@ startCommand:
   configSchema:
     # JSON Schema defining the configuration options for the MCP.
     type: object
-    required:
-      - neo4jPassword
+    required: []
     properties:
       neo4jUri:
         type: string

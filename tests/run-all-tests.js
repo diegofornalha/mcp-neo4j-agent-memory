@@ -11,6 +11,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const tests = [
+  'test-server-startup.js',
   'test-create-memory.js',
   'test-search-memories.js',
   'test-search-arrays.js',
